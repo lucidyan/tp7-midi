@@ -1,0 +1,20 @@
+{
+  "name": "TP7-MIDI Dev Server",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "postCreateCommand": ".devcontainer/setup.sh",
+  "appPort": ["8443:8443"],
+  "forwardPorts": [8443],
+  "portsAttributes": {
+    "8443": {
+      "label": "HTTPS Server",
+      "protocol": "https"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python"
+      ]
+    }
+  }
+}

@@ -1157,60 +1157,6 @@
             font-size: 0.75rem;
         }
 
-        /* Debug Panel */
-        .debug-panel {
-            background: var(--bg);
-            padding: 15px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-        }
-
-        .debug-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
-            flex-wrap: wrap;
-        }
-
-        .debug-row label {
-            color: var(--text-dim);
-            min-width: 150px;
-        }
-
-        .debug-row span {
-            font-family: 'SF Mono', Monaco, monospace;
-        }
-
-        .debug-row.calculated {
-            background: var(--surface);
-            padding: 10px;
-            border-radius: 4px;
-            margin: 10px 0;
-        }
-
-        .debug-row.calculated label {
-            color: var(--accent);
-            font-weight: 600;
-        }
-
-        #debug-final-speed {
-            font-size: 1.5rem;
-            color: var(--accent);
-        }
-
-        .debug-sweep {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin: 10px 0;
-            flex-wrap: wrap;
-        }
-
-        #sweep-status {
-            color: var(--warning);
-            font-size: 0.8rem;
-        }
 
         .section.draggable {
             cursor: grab;
@@ -1293,9 +1239,10 @@
 
         <div id="app">
             <!-- Global State Warning -->
-            <div class="info-box">
+            <div id="dismiss-global-state" class="info-box dismissible">
                 <span class="icon">ℹ️</span>
                 <span>All states are LOCAL only. TP-7 doesn't report state via MIDI - UI may not match device after reconnection or physical interaction.</span>
+                <button class="dismiss-btn" title="Dismiss">✕</button>
             </div>
 
             <!-- Connection -->
@@ -1337,13 +1284,15 @@
             <!-- Cue Markers -->
             <div id="section-cue" class="section">
                 <h2>Cue Markers <small>Note On/Off</small></h2>
-                <div class="warning-box">
+                <div id="dismiss-cue-required" class="warning-box dismissible">
                     <span class="icon">⚠️</span>
                     <span><strong>Required:</strong> Set MIDI-CUE in TP-7 settings for cue markers to work!</span>
+                    <button class="dismiss-btn" title="Dismiss">✕</button>
                 </div>
-                <div class="info-box">
+                <div id="dismiss-cue-clear" class="info-box dismissible">
                     <span class="icon">ℹ️</span>
                     <span><strong>No MIDI way to clear cues!</strong> To clear cue markers on TP-7, you must change the track manually on the device. "Clear UI" only clears the local UI state.</span>
+                    <button class="dismiss-btn" title="Dismiss">✕</button>
                 </div>
                 <div class="cue-controls">
                     <div class="cue-rec-toggle">
@@ -1386,9 +1335,10 @@
             <!-- Playback Speed (Pitch Bend) -->
             <div id="section-pitch" class="section">
                 <h2>Playback Speed <small>Pitch Bend</small></h2>
-                <div class="info-box">
+                <div id="dismiss-pitch-info" class="info-box dismissible">
                     <span class="icon">ℹ️</span>
                     <span><strong>1 of 3 speed controls.</strong> Internal multiplier via MIDI. Only during playback. NOT visible on TP-7. (Other 2: SPD on screen - no MIDI access!, Rocker below)</span>
+                    <button class="dismiss-btn" title="Dismiss">✕</button>
                 </div>
                 <div class="control-grid">
                     <div class="control-group" style="grid-column: 1 / -1;">
@@ -1438,13 +1388,15 @@
                     Rocker <small>CC 18</small>
                     <span id="transport-state" class="transport-state stopped">Stopped</span>
                 </h2>
-                <div class="info-box">
+                <div id="dismiss-rocker-info" class="info-box dismissible">
                     <span class="icon">ℹ️</span>
                     <span><strong>1 of 3 speed controls.</strong> Emulates physical rocker. Works with AND without Play. NOT the SPD on screen!</span>
+                    <button class="dismiss-btn" title="Dismiss">✕</button>
                 </div>
-                <div class="warning-box">
+                <div id="dismiss-rocker-warning" class="warning-box dismissible">
                     <span class="icon">⚠️</span>
                     <span><strong>Playback Mode (After Play or Cue trigger): CAN'T STOP!</strong> Value 64 no longer stops - center shifts! 0-60 = reverse, 61-127 = forward. Slowest at 60/61. To stop: CC18=60 + Pitch Bend=+708.</span>
+                    <button class="dismiss-btn" title="Dismiss">✕</button>
                 </div>
                 <div id="cue-play-warning" class="cue-play-warning">
                     <strong>⚠️ Cue Playback Mode Active</strong>
@@ -1503,45 +1455,6 @@
                 <h2>Input Gain <small>CC 9</small></h2>
                 <div class="control-grid" id="gain-controls">
                     <!-- Generated by JS -->
-                </div>
-            </div>
-
-            <!-- Speed Debug -->
-            <div id="section-debug" class="section">
-                <h2>Speed Debug <small>Find stop point</small></h2>
-                <div class="debug-panel">
-                    <div class="debug-row">
-                        <label>Current Rocker (CC18):</label>
-                        <span id="debug-rocker">64</span>
-                        <span id="debug-rocker-mult">(0x)</span>
-                    </div>
-                    <div class="debug-row">
-                        <label>Current Pitch:</label>
-                        <span id="debug-pitch">0</span>
-                        <span id="debug-pitch-mult">(x1.00)</span>
-                    </div>
-                    <div class="debug-row calculated">
-                        <label>Calculated Speed:</label>
-                        <span id="debug-final-speed">0x</span>
-                    </div>
-                    <hr style="border-color: var(--border); margin: 15px 0;">
-                    <div class="debug-row">
-                        <label>Find compensation pitch for rocker -1x (CC18=60):</label>
-                    </div>
-                    <div class="debug-sweep">
-                        <button id="sweep-start">Sweep Pitch (slow)</button>
-                        <button id="sweep-stop">Stop Sweep</button>
-                        <span id="sweep-status"></span>
-                    </div>
-                    <div class="debug-row">
-                        <label>Test pitch:</label>
-                        <input type="number" id="debug-test-pitch" value="703" style="width: 80px;">
-                        <button id="debug-test-apply">Apply with Rocker -1x</button>
-                    </div>
-                    <div class="info-box" style="margin-top: 10px;">
-                        <span class="icon">ℹ️</span>
-                        <span>At rocker -1x (CC18=60), tape should reverse. Finding the pitch that "stops" it means finding where forward pitch cancels reverse rocker. Current best guess: <strong>~703</strong></span>
-                    </div>
                 </div>
             </div>
 
@@ -2269,90 +2182,18 @@
                 }
             });
 
-            // =====================================================================
-            // Speed Debug Panel
-            // =====================================================================
-
-            let sweepInterval = null;
-
-            function calculateRockerMult(cc18) {
-                // CC18: 64=stop(0x), 60=-1x, 68=+1x, 0=-16x, 127=+16x
-                // Formula: (cc18 - 64) / 4
-                return (cc18 - 64) / 4;
-            }
-
-            function calculatePitchMult(pitch) {
-                // Asymmetric: -8192=x0.25, 0=x1, +8191=x2
-                if (pitch < 0) {
-                    return 1 + (pitch / 8192) * 0.75;
-                } else {
-                    return 1 + (pitch / 8192);
-                }
-            }
-
-            function updateDebugDisplay() {
-                const rocker = state.transport;
-                const pitch = parseInt(document.getElementById('pitch-bend').value);
-
-                const rockerMult = calculateRockerMult(rocker);
-                const pitchMult = calculatePitchMult(pitch);
-                const finalSpeed = rockerMult * pitchMult;
-
-                document.getElementById('debug-rocker').textContent = rocker;
-                document.getElementById('debug-rocker-mult').textContent = `(${rockerMult.toFixed(2)}x)`;
-                document.getElementById('debug-pitch').textContent = pitch;
-                document.getElementById('debug-pitch-mult').textContent = `(x${pitchMult.toFixed(3)})`;
-                document.getElementById('debug-final-speed').textContent = `${finalSpeed.toFixed(3)}x`;
-            }
-
-            // Update debug on transport/pitch changes
+            // Update manual inputs on transport/pitch changes
             const origSetTransport = setTransport;
             setTransport = function(value) {
                 origSetTransport(value);
                 document.getElementById('rocker-manual').value = value;
-                updateDebugDisplay();
             };
 
             const origSetPitch = setPitch;
             setPitch = function(pitch) {
                 origSetPitch(pitch);
                 document.getElementById('pitch-manual').value = pitch;
-                updateDebugDisplay();
             };
-
-            // Sweep to find stop point
-            document.getElementById('sweep-start').addEventListener('click', () => {
-                let pitch = 0;
-                setTransport(60); // Set rocker to -1x
-                document.getElementById('sweep-status').textContent = 'Sweeping...';
-
-                sweepInterval = setInterval(() => {
-                    setPitch(pitch);
-                    document.getElementById('sweep-status').textContent = `Testing pitch: ${pitch}`;
-                    pitch += 10;
-                    if (pitch > 2000) {
-                        clearInterval(sweepInterval);
-                        document.getElementById('sweep-status').textContent = 'Sweep complete (0-2000)';
-                    }
-                }, 200);
-            });
-
-            document.getElementById('sweep-stop').addEventListener('click', () => {
-                if (sweepInterval) {
-                    clearInterval(sweepInterval);
-                    sweepInterval = null;
-                }
-                document.getElementById('sweep-status').textContent = 'Stopped';
-            });
-
-            document.getElementById('debug-test-apply').addEventListener('click', () => {
-                const pitch = parseInt(document.getElementById('debug-test-pitch').value);
-                setTransport(60); // Rocker -1x
-                setPitch(pitch);
-            });
-
-            // Initialize debug display
-            setTimeout(updateDebugDisplay, 500);
 
             // Pitch scale markers
             document.querySelectorAll('.pitch-scale span').forEach(marker => {
@@ -2727,6 +2568,50 @@
                     handleCueClick(cueNum, btn);
                 }
             }
+
+            // =====================================================================
+            // Dismissible Boxes
+            // =====================================================================
+
+            const DISMISSED_KEY = 'tp7-dismissed-boxes';
+
+            function loadDismissedBoxes() {
+                try {
+                    const dismissed = JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]');
+                    dismissed.forEach(id => {
+                        const box = document.getElementById(id);
+                        if (box) box.classList.add('dismissed');
+                    });
+                } catch (e) {
+                    console.error('Failed to load dismissed boxes:', e);
+                }
+            }
+
+            function saveDismissedBox(id) {
+                try {
+                    const dismissed = JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]');
+                    if (!dismissed.includes(id)) {
+                        dismissed.push(id);
+                        localStorage.setItem(DISMISSED_KEY, JSON.stringify(dismissed));
+                    }
+                } catch (e) {
+                    console.error('Failed to save dismissed box:', e);
+                }
+            }
+
+            // Handle dismiss button clicks
+            document.querySelectorAll('.dismiss-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const box = e.target.closest('.dismissible');
+                    if (box && box.id) {
+                        box.classList.add('dismissed');
+                        saveDismissedBox(box.id);
+                    }
+                });
+            });
+
+            // Load dismissed state
+            loadDismissedBoxes();
         });
     </script>
 </body>

@@ -6,27 +6,67 @@ Technical setup for local development and testing.
 
 ## Local Testing
 
-WebMIDI requires HTTPS. To test locally:
+Web MIDI and Web Bluetooth require HTTPS. Self-signed certs don't work well with Safari (macOS/iOS). Use **mkcert** for proper local HTTPS.
 
-### 1. Generate SSL Certificate
-
-```bash
-openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=localhost"
-```
-
-### 2. Start Local Server
+### Quick Start (mkcert - recommended)
 
 ```bash
-python3 serve_https.py
+# Install mkcert
+brew install mkcert
+
+# Install local CA (requires password)
+mkcert -install
+
+# Generate certs (add your LAN IP for mobile testing)
+mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 ::1
+
+# Start server
+python3 dev/serve_https.py
 ```
 
-### 3. Open in Browser
+Open https://localhost:8443
 
-```
-https://localhost:4443
+### Mobile Testing (iOS/Android)
+
+To test on mobile devices, include your LAN IP in the certificate:
+
+```bash
+# Find your LAN IP
+ipconfig getifaddr en0
+
+# Generate cert with LAN IP (example: 192.168.1.100)
+mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 ::1 192.168.1.100
 ```
 
-Accept the self-signed certificate warning.
+**For iOS Safari:**
+1. Find mkcert CA: `mkcert -CAROOT`
+2. AirDrop `rootCA.pem` to your iPhone
+3. iPhone: Settings → Downloaded Profile → Install
+4. iPhone: Settings → General → About → **Certificate Trust Settings** → Toggle ON for mkcert
+5. Open `https://<your-lan-ip>:8443`
+
+**For Android:**
+- Chrome usually accepts the cert if mkcert CA is installed
+- Or just accept the warning
+
+### Alternative: openssl (basic, Safari won't trust it)
+
+```bash
+openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=localhost"
+python3 dev/serve_https.py
+```
+
+Works in Chrome (click through warning), but Safari blocks it.
+
+### Devcontainer
+
+The `.devcontainer` config auto-generates certs and exposes port 8443. Use with VS Code or:
+
+```bash
+npm install -g @devcontainers/cli
+devcontainer up --workspace-folder .
+devcontainer exec --workspace-folder . python dev/serve_https.py
+```
 
 ---
 
