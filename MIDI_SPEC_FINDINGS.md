@@ -123,12 +123,16 @@ This is the most complex and poorly documented feature.
 
 ### Note On/Off - Cue Markers
 
+**⚠️ REQUIRED:** You must enable **MIDI-CUE** in TP-7 settings for cue markers to work via MIDI!
+
 | Mode | Note On/Off Behavior |
 |------|---------------------|
 | Cue Rec Mode OFF (CC16=0) | Triggers/recalls cue at that note position |
 | Cue Rec Mode ON (CC16=127) | Records a cue marker at current position |
 
 **Cue Range:** 0 (C#1) to 127 (G9)
+
+**⚠️ No MIDI way to clear cue markers!** To clear cues on TP-7, you must change the track manually on the device.
 
 When recalling a cue:
 - Playback starts from that cue point
@@ -140,21 +144,29 @@ When recalling a cue:
 
 ---
 
-## Speed Control System (2 Independent Controls via MIDI)
+## Speed Control System (3 INDEPENDENT CONTROLS!)
 
-When sending MIDI TO the TP-7, you have **TWO independent speed controls**:
+TP-7 has **THREE separate speed multipliers**:
 
-### 1. Transport (CC 18) - Rocker Emulation
+### 1. SPD on TP-7 Screen
+- The speed value shown on TP-7's display
+- **⚠️ NO MIDI ACCESS!** Cannot be controlled or read via MIDI
+- Possibly a firmware bug/oversight
+- Affects playback when playing
+
+### 2. Rocker (CC 18) - Physical Rocker Emulation
 - **Emulates the physical rocker** on TP-7
-- Works with AND without play state (moves tape even when stopped)
+- **Works with AND without Play state** (moves tape even when stopped!)
 - Values 0-127 control direction and speed (see CC18 section above)
-- Visible on TP-7 display as "SPD"
+- **NOT the SPD on screen** - separate control!
+- When stopped: Only rocker affects tape movement
+- When playing: Multiplies with other speed controls
 
-### 2. Pitch Bend - Internal Speed Multiplier
-- **Additional internal speed multiplier** (NOT the SPD on screen)
+### 3. Pitch Bend - Internal Speed Multiplier
+- **Hidden internal speed multiplier** via MIDI
 - **Only applies during playback** (no effect when stopped)
 - **NOT visible on TP-7 display!** SPD indicator remains unchanged
-- Multiplies the transport speed
+- Controlled via MIDI Pitch Bend message
 
 **Range:** -8192 to +8191
 
@@ -170,7 +182,17 @@ When sending MIDI TO the TP-7, you have **TWO independent speed controls**:
 | +4096 | x1.50 | |
 | +8191 | x2.00 | Double speed (fastest) |
 
-**During playback:** Actual speed = Transport speed × Pitch multiplier
+### Speed Calculation
+
+**When stopped:**
+```
+Tape movement = Rocker (CC18) only
+```
+
+**When playing:**
+```
+Final speed = SPD (screen) × Rocker (CC18) × Pitch Bend
+```
 
 **TODO:** Test if there's a specific pitch bend value that can actually stop playback from cue mode
 
@@ -267,3 +289,6 @@ CUE PLAYBACK MODE:
 5. **No state feedback** - TP-7 never reports its state when receiving MIDI commands
 6. **Pitch Bend** becomes essential for speed control during cue playback
 7. **Controller Mode is separate** - TP-7 only sends button events in Controller Mode, which is mutually exclusive with receiving commands
+8. **MIDI-CUE setting required** - Must enable MIDI-CUE in TP-7 settings for cue markers to work
+9. **3 speed controls** - SPD (no MIDI access!), Rocker (CC18), Pitch Bend - all multiply during playback
+10. **SPD has no MIDI access** - The speed shown on TP-7 screen cannot be controlled via MIDI (possible bug?)

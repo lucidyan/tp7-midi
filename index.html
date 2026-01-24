@@ -1001,6 +1001,12 @@
         </div>
 
         <div id="app">
+            <!-- Global State Warning -->
+            <div class="state-warning" style="margin-bottom: 20px;">
+                <span class="icon">⚠️</span>
+                <span>All states are LOCAL only. TP-7 doesn't report state via MIDI - UI may not match device after reconnection or physical interaction.</span>
+            </div>
+
             <!-- Connection -->
             <div id="section-connection" class="section">
                 <div class="connection-row">
@@ -1019,9 +1025,9 @@
             <!-- Cue Markers -->
             <div id="section-cue" class="section">
                 <h2>Cue Markers (Note On/Off)</h2>
-                <div class="state-warning">
+                <div class="state-warning" style="background: rgba(255, 152, 0, 0.15); border-color: var(--warning); color: var(--warning); margin-bottom: 10px;">
                     <span class="icon">⚠️</span>
-                    <span>States are local only. TP-7 doesn't report its state via MIDI, so UI may not reflect actual device state after reconnection.</span>
+                    <span><strong>Required:</strong> Set MIDI-CUE in TP-7 settings for cue markers to work!</span>
                 </div>
                 <div class="cue-controls">
                     <div class="cue-rec-toggle">
@@ -1032,7 +1038,7 @@
                         </div>
                     </div>
                     <div class="cue-actions">
-                        <button id="cue-clear-all">🗑️ Clear All</button>
+                        <button id="cue-clear-all" title="Clears UI only! Change track on TP-7 to clear actual cues">🗑️ Clear UI</button>
                     </div>
                 </div>
                 <div class="cue-count-control">
@@ -1066,7 +1072,7 @@
                 <h2>Playback Speed Modifier (Pitch Bend)</h2>
                 <div class="state-warning" style="background: rgba(33, 150, 243, 0.1); border-color: #2196f3; color: #2196f3;">
                     <span class="icon">ℹ️</span>
-                    <span>Internal speed multiplier (not the SPD on screen). Only applies during playback. Actual speed = transport × multiplier. NOT visible on TP-7 display.</span>
+                    <span><strong>1 of 3 speed controls.</strong> Internal multiplier via MIDI. Only during playback. NOT visible on TP-7. (Other 2: SPD on screen - no MIDI access!, Rocker below)</span>
                 </div>
                 <div class="control-grid">
                     <div class="control-group" style="grid-column: 1 / -1;">
@@ -1112,7 +1118,7 @@
                 </h2>
                 <div class="state-warning" style="background: rgba(33, 150, 243, 0.1); border-color: #2196f3; color: #2196f3; margin-bottom: 15px;">
                     <span class="icon">ℹ️</span>
-                    <span>Emulates physical rocker. Independent from Play state - moves tape even when stopped. Visible as SPD on TP-7 display.</span>
+                    <span><strong>1 of 3 speed controls.</strong> Emulates physical rocker. Works with AND without Play (moves tape when stopped). NOT the SPD on screen! When playing: final speed = SPD × Rocker × Pitch</span>
                 </div>
                 <div id="cue-play-warning" class="cue-play-warning">
                     <strong>⚠️ Cue Playback Mode Active</strong>
@@ -1560,14 +1566,19 @@
         }
 
         function clearAllCues() {
-            console.log('clearAllCues called, current cues:', state.cues.size);
-            state.cues = new Set(); // Create fresh Set instead of clear()
-            // Remove set class from all existing buttons
-            document.querySelectorAll('.cue-btn.set').forEach(btn => {
-                btn.classList.remove('set');
-            });
-            log('All cue markers cleared (local state only)');
-            console.log('After clear, cues:', state.cues.size);
+            state.cues = new Set();
+            // Remove set class from all existing buttons in the grid
+            const grid = document.getElementById('cue-grid');
+            if (grid) {
+                grid.querySelectorAll('.cue-btn').forEach(btn => {
+                    btn.classList.remove('set');
+                });
+            }
+            log('UI cleared. To clear actual cues on TP-7: change track!');
+            // Save to localStorage
+            if (typeof saveControlState === 'function') {
+                saveControlState();
+            }
         }
 
         // =====================================================================
