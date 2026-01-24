@@ -138,52 +138,47 @@ When recalling a cue:
 
 ---
 
-### Pitch Bend - Speed Modifier
-
-| Context | Behavior |
-|---------|----------|
-| Normal playback | Modifies playback speed |
-| Cue playback | Primary speed control (since CC18 has no stop) |
-
-**Range:** -8192 to +8191
-- Negative = slower/reverse
-- Zero = normal speed
-- Positive = faster
-
-**⚠️ Important:** Pitch bend changes are NOT visible on TP-7 display! The speed indicator on the device remains unchanged even when pitch bend is applied via MIDI.
-
-**TODO:** Test if there's a specific pitch bend value that can actually stop playback from cue mode (effectively becoming a "stop" command)
-
 ---
 
-## Monitoring TP-7 State via MIDI Input
+## Speed Control System (2 Independent Controls via MIDI)
 
-While you cannot *query* the TP-7 state, you CAN monitor button presses by listening to MIDI input!
+When sending MIDI TO the TP-7, you have **TWO independent speed controls**:
 
-### Outgoing Messages from TP-7 (Controller Mode)
+### 1. Transport (CC 18) - Rocker Emulation
+- **Emulates the physical rocker** on TP-7
+- Works with AND without play state (moves tape even when stopped)
+- Values 0-127 control direction and speed (see CC18 section above)
+- Visible on TP-7 display as "SPD"
 
-When buttons are pressed on the device, TP-7 sends:
+### 2. Pitch Bend - Internal Speed Multiplier
+- **Additional internal speed multiplier** (NOT the SPD on screen)
+- **Only applies during playback** (no effect when stopped)
+- **NOT visible on TP-7 display!** SPD indicator remains unchanged
+- Multiplies the transport speed
 
-| Control | CC | Value | Notes |
-|---------|-----|-------|-------|
-| Up | 20 | 0-127 | 64+ = pressed |
-| Down | 21 | 0-127 | 64+ = pressed |
-| Rec | 22 | 0-127 | 64+ = pressed |
-| Play | 23 | 0-127 | 64+ = pressed |
-| Stop | 24 | 0-127 | 64+ = pressed |
-| Left | 25 | 0-127 | 64+ = pressed |
-| Right | 26 | 0-127 | 64+ = pressed |
-| Memo | 27 | 0-127 | 64+ = pressed |
-| Wheel | 30 | -64 to +63 | Relative, two's complement |
-| Rocker | Pitch Bend | ±8192 | Continuous |
+**Range:** -8192 to +8191
 
-**Use Case:** Connect to TP-7's MIDI input port to monitor user interactions and sync your UI accordingly.
+**Speed Formula (asymmetric):**
+- Negative: `multiplier = 1 + (pitch/8192) × 0.75` → range x0.25 to x1
+- Positive: `multiplier = 1 + (pitch/8192)` → range x1 to x2
+
+| Pitch | Multiplier | Effect |
+|-------|------------|--------|
+| -8192 | x0.25 | Quarter speed (slowest) |
+| -5461 | x0.50 | Half speed |
+| 0 | x1.00 | Normal speed |
+| +4096 | x1.50 | |
+| +8191 | x2.00 | Double speed (fastest) |
+
+**During playback:** Actual speed = Transport speed × Pitch multiplier
+
+**TODO:** Test if there's a specific pitch bend value that can actually stop playback from cue mode
 
 ---
 
 ## State Persistence Warning
 
-**TP-7 does NOT report its state on request.**
+**TP-7 does NOT report its state via MIDI.**
 
 This means:
 - You cannot query current transport state
@@ -191,9 +186,9 @@ This means:
 - You cannot query which cues are set
 - After reconnection, UI state may not match device state
 
-**However:** You CAN monitor button presses via MIDI input to stay in sync when the user interacts with the physical device.
+**Important:** The "Outgoing MIDI Messages" (CC 20-27, wheel, rocker) are only sent when TP-7 is in **Controller Mode** - which is a different mode than when receiving MIDI commands. You cannot simultaneously control the TP-7 AND receive its button press events.
 
-All states in control software are LOCAL ONLY and may become out of sync if the device is controlled externally.
+All states in control software are LOCAL ONLY and may become out of sync if the device is controlled externally or via physical buttons.
 
 ---
 
@@ -269,5 +264,6 @@ CUE PLAYBACK MODE:
 2. **CC17 (Loop)** is a state machine - must set In before Out, can only exit with Off
 3. **CC18 (Transport)** has TWO completely different modes
 4. **Cue playback** removes the stop position from CC18
-5. **No state feedback** - TP-7 never reports its state via MIDI
+5. **No state feedback** - TP-7 never reports its state when receiving MIDI commands
 6. **Pitch Bend** becomes essential for speed control during cue playback
+7. **Controller Mode is separate** - TP-7 only sends button events in Controller Mode, which is mutually exclusive with receiving commands

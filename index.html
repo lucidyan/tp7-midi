@@ -570,20 +570,77 @@
             font-size: 0.7rem;
         }
 
-        /* Pitch Bend */
+        /* Pitch Bend / Speed Modifier */
+        .speed-display {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .speed-multiplier {
+            font-size: 2rem;
+            font-weight: 300;
+            font-family: 'SF Mono', Monaco, monospace;
+            color: var(--accent);
+        }
+
+        .speed-pitch {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
         .pitch-bend-container {
             display: flex;
-            align-items: center;
-            gap: 20px;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .pitch-scale {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+
+        .pitch-scale span {
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        .pitch-scale span:hover {
+            background: var(--surface-hover);
+            color: var(--text);
+        }
+
+        .pitch-scale .center-mark {
+            color: var(--accent);
+            font-weight: 600;
         }
 
         .pitch-bend-slider {
-            flex: 1;
+            width: 100%;
         }
 
-        .center-btn {
-            padding: 8px 16px;
-            font-size: 0.8rem;
+        .pitch-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .pitch-buttons button {
+            flex: 1;
+            padding: 8px;
+            font-size: 0.75rem;
+        }
+
+        .pitch-buttons button[data-pitch="0"] {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
         }
 
         /* State Warning */
@@ -737,13 +794,48 @@
         }
 
         .cue-btn:active {
-            transform: scale(0.95);
+            transform: scale(0.9);
         }
 
         .cue-btn.set {
             background: var(--cue-set);
             border-color: var(--cue-set);
             color: white;
+        }
+
+        .cue-btn.triggered {
+            animation: cue-flash 0.3s ease-out;
+        }
+
+        @keyframes cue-flash {
+            0% {
+                transform: scale(1.15);
+                box-shadow: 0 0 20px var(--accent), 0 0 40px var(--accent);
+                background: var(--accent);
+                border-color: var(--accent);
+                color: white;
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: none;
+            }
+        }
+
+        .cue-btn.set.triggered {
+            animation: cue-flash-set 0.3s ease-out;
+        }
+
+        @keyframes cue-flash-set {
+            0% {
+                transform: scale(1.15);
+                box-shadow: 0 0 20px var(--cue-set), 0 0 40px var(--cue-set);
+                filter: brightness(1.5);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: none;
+                filter: brightness(1);
+            }
         }
 
         .cue-btn .cue-indicator {
@@ -791,6 +883,7 @@
             color: var(--text);
         }
 
+
         /* Not Supported */
         .not-supported {
             background: rgba(244, 67, 54, 0.1);
@@ -825,6 +918,70 @@
             color: var(--accent);
             text-decoration: none;
         }
+
+        /* Edit Layout Mode */
+        .edit-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .edit-toggle:hover {
+            border-color: var(--accent);
+            color: var(--text);
+        }
+
+        .edit-toggle.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        header {
+            position: relative;
+        }
+
+        .section.draggable {
+            cursor: grab;
+            border: 2px dashed transparent;
+            transition: all 0.2s;
+        }
+
+        .section.draggable:hover {
+            border-color: var(--accent);
+        }
+
+        .section.draggable::before {
+            content: '⋮⋮';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: var(--text-dim);
+            font-size: 1.2rem;
+            letter-spacing: -3px;
+        }
+
+        .section.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .section.drag-over {
+            border-color: var(--success);
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .section {
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -832,6 +989,7 @@
         <header>
             <h1><span>TP-7</span> MIDI Controller</h1>
             <p class="subtitle">Web MIDI interface for Teenage Engineering TP-7</p>
+            <button id="edit-layout-toggle" class="edit-toggle">Edit Layout</button>
         </header>
 
         <div id="midi-not-supported" class="not-supported" style="display: none;">
@@ -844,7 +1002,7 @@
 
         <div id="app">
             <!-- Connection -->
-            <div id="connection" class="section">
+            <div id="section-connection" class="section">
                 <div class="connection-row">
                     <div id="status" class="disconnected">
                         <span class="status-dot"></span>
@@ -853,20 +1011,109 @@
                     <select id="midi-output">
                         <option value="">Select MIDI Output...</option>
                     </select>
-                    <select id="midi-input">
-                        <option value="">Select MIDI Input (monitor)...</option>
-                    </select>
                     <button id="connect-btn" class="primary">Connect</button>
                     <button id="refresh-btn">Refresh</button>
                 </div>
             </div>
 
-            <!-- Transport -->
-            <div class="section">
+            <!-- Cue Markers -->
+            <div id="section-cue" class="section">
+                <h2>Cue Markers (Note On/Off)</h2>
+                <div class="state-warning">
+                    <span class="icon">⚠️</span>
+                    <span>States are local only. TP-7 doesn't report its state via MIDI, so UI may not reflect actual device state after reconnection.</span>
+                </div>
+                <div class="cue-controls">
+                    <div class="cue-rec-toggle">
+                        <span class="label">Cue Rec Mode (CC 16)</span>
+                        <div class="toggle-group">
+                            <button class="toggle-btn active" id="cue-rec-off">Off</button>
+                            <button class="toggle-btn" id="cue-rec-on">⏺ Rec</button>
+                        </div>
+                    </div>
+                    <div class="cue-actions">
+                        <button id="cue-clear-all">🗑️ Clear All</button>
+                    </div>
+                </div>
+                <div class="cue-count-control">
+                    <label>Cue count:</label>
+                    <input type="number" id="cue-count" value="8" min="8" max="128" step="8">
+                    <button id="cue-count-apply">Apply</button>
+                </div>
+                <div class="cue-grid" id="cue-grid">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+
+            <!-- Loop Control -->
+            <div id="section-loop" class="section">
+                <h2>Loop Control (CC 17)</h2>
+                <div class="control-grid">
+                    <div class="control-group">
+                        <label>Loop Mode</label>
+                        <div class="toggle-group" id="loop-toggle">
+                            <button class="toggle-btn" data-loop="0" id="loop-off">Off</button>
+                            <button class="toggle-btn" data-loop="1" id="loop-in">In</button>
+                            <button class="toggle-btn" data-loop="2" id="loop-out">Out</button>
+                        </div>
+                        <div class="loop-status idle" id="loop-status">No loop set</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Playback Speed (Pitch Bend) -->
+            <div id="section-pitch" class="section">
+                <h2>Playback Speed Modifier (Pitch Bend)</h2>
+                <div class="state-warning" style="background: rgba(33, 150, 243, 0.1); border-color: #2196f3; color: #2196f3;">
+                    <span class="icon">ℹ️</span>
+                    <span>Internal speed multiplier (not the SPD on screen). Only applies during playback. Actual speed = transport × multiplier. NOT visible on TP-7 display.</span>
+                </div>
+                <div class="control-grid">
+                    <div class="control-group" style="grid-column: 1 / -1;">
+                        <label>Speed Multiplier (applies to current transport)</label>
+                        <div class="speed-display">
+                            <span class="speed-multiplier" id="speed-multiplier">x1.00</span>
+                            <span class="speed-pitch" id="pitch-value">(pitch: 0)</span>
+                        </div>
+                        <div class="pitch-bend-container">
+                            <div class="pitch-scale">
+                                <span data-pitch="-8192">x0.25</span>
+                                <span data-pitch="-4096">x0.63</span>
+                                <span data-pitch="0" class="center-mark">x1</span>
+                                <span data-pitch="4096">x1.5</span>
+                                <span data-pitch="8191">x2</span>
+                            </div>
+                            <input type="range" id="pitch-bend" min="-8192" max="8191" value="0" class="pitch-bend-slider">
+                        </div>
+                        <div class="pitch-buttons">
+                            <button class="pitch-preset" data-pitch="-8192">x0.25</button>
+                            <button class="pitch-preset" data-pitch="-5461">x0.5</button>
+                            <button class="pitch-preset" data-pitch="0">x1</button>
+                            <button class="pitch-preset" data-pitch="4096">x1.5</button>
+                            <button class="pitch-preset" data-pitch="8191">x2</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mixer -->
+            <div id="section-mixer" class="section">
+                <h2>Mixer (CC 7 Volume / CC 120 Mute)</h2>
+                <div class="channel-strips" id="channel-strips">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+
+            <!-- Rocker -->
+            <div id="section-rocker" class="section">
                 <h2>
-                    Transport (CC 18)
+                    Rocker (CC 18)
                     <span id="transport-state" class="transport-state stopped">Stopped</span>
                 </h2>
+                <div class="state-warning" style="background: rgba(33, 150, 243, 0.1); border-color: #2196f3; color: #2196f3; margin-bottom: 15px;">
+                    <span class="icon">ℹ️</span>
+                    <span>Emulates physical rocker. Independent from Play state - moves tape even when stopped. Visible as SPD on TP-7 display.</span>
+                </div>
                 <div id="cue-play-warning" class="cue-play-warning">
                     <strong>⚠️ Cue Playback Mode Active</strong>
                     In cue playback mode, CC18 becomes <em>relative speed</em> with NO stop position!
@@ -918,84 +1165,16 @@
                 </div>
             </div>
 
-            <!-- Playback Speed (Pitch Bend) -->
-            <div class="section">
-                <h2>Playback Speed Modifier (Pitch Bend)</h2>
-                <div class="control-grid">
-                    <div class="control-group" style="grid-column: 1 / -1;">
-                        <label>Speed Offset (applies to current transport)</label>
-                        <div class="value" id="pitch-value">0</div>
-                        <div class="pitch-bend-container">
-                            <input type="range" id="pitch-bend" min="-8192" max="8191" value="0" class="pitch-bend-slider">
-                            <button class="center-btn" id="pitch-center">Center</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Loop Control -->
-            <div class="section">
-                <h2>Loop Control (CC 17)</h2>
-                <div class="control-grid">
-                    <div class="control-group">
-                        <label>Loop Mode</label>
-                        <div class="toggle-group" id="loop-toggle">
-                            <button class="toggle-btn" data-loop="0" id="loop-off">Off</button>
-                            <button class="toggle-btn" data-loop="1" id="loop-in">In</button>
-                            <button class="toggle-btn" data-loop="2" id="loop-out">Out</button>
-                        </div>
-                        <div class="loop-status idle" id="loop-status">No loop set</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Mixer -->
-            <div class="section">
-                <h2>Mixer (CC 7 Volume / CC 120 Mute)</h2>
-                <div class="channel-strips" id="channel-strips">
-                    <!-- Generated by JS -->
-                </div>
-            </div>
-
             <!-- Input Gain -->
-            <div class="section">
+            <div id="section-gain" class="section">
                 <h2>Input Gain (CC 9)</h2>
                 <div class="control-grid" id="gain-controls">
                     <!-- Generated by JS -->
                 </div>
             </div>
 
-            <!-- Cue Markers -->
-            <div class="section">
-                <h2>Cue Markers (Note On/Off)</h2>
-                <div class="state-warning">
-                    <span class="icon">⚠️</span>
-                    <span>States are local only. TP-7 doesn't report its state via MIDI, so UI may not reflect actual device state after reconnection.</span>
-                </div>
-                <div class="cue-controls">
-                    <div class="cue-rec-toggle">
-                        <span class="label">Cue Rec Mode (CC 16)</span>
-                        <div class="toggle-group">
-                            <button class="toggle-btn active" id="cue-rec-off">Off</button>
-                            <button class="toggle-btn" id="cue-rec-on">⏺ Rec</button>
-                        </div>
-                    </div>
-                    <div class="cue-actions">
-                        <button id="cue-clear-all">🗑️ Clear All</button>
-                    </div>
-                </div>
-                <div class="cue-count-control">
-                    <label>Cue count:</label>
-                    <input type="number" id="cue-count" value="32" min="8" max="128" step="8">
-                    <button id="cue-count-apply">Apply</button>
-                </div>
-                <div class="cue-grid" id="cue-grid">
-                    <!-- Generated by JS -->
-                </div>
-            </div>
-
             <!-- MIDI Log -->
-            <div class="section">
+            <div id="section-log" class="section">
                 <h2>MIDI Log</h2>
                 <div id="log"></div>
             </div>
@@ -1023,7 +1202,7 @@
             loopState: 'off',
             cueRecMode: false,
             cues: new Set(),
-            cueCount: 32,
+            cueCount: 8,
             cuePlayActive: false,
             lastCuePlayed: null,
         };
@@ -1049,11 +1228,10 @@
             if (!midiOutput) return;
             const noteOn = 0x90 | (channel - 1);
             const noteOff = 0x80 | (channel - 1);
+            // Send both immediately - TP-7 just needs the trigger
             midiOutput.send([noteOn, note, velocity]);
-            setTimeout(() => {
-                midiOutput.send([noteOff, note, 0]);
-            }, 50);
-            log(`Note ${note} vel ${velocity} (ch ${channel})`);
+            midiOutput.send([noteOff, note, 0]);
+            log(`Cue ${note}`);
         }
 
         function sendPitchBend(value, channel = 1) {
@@ -1230,17 +1408,17 @@
                 strip.dataset.channel = ch;
                 strip.innerHTML = `
                     <div class="ch-label">CH ${ch}</div>
-                    <div class="ch-value">100</div>
+                    <div class="ch-value">100%</div>
                     <div class="fader-container">
                         <div class="fader-scale">
-                            <span>+10</span>
-                            <span class="zero-mark">0</span>
-                            <span>-10</span>
-                            <span>-20</span>
-                            <span>-∞</span>
+                            <span>— 100</span>
+                            <span>— 75</span>
+                            <span>— 50</span>
+                            <span>— 25</span>
+                            <span>— 0</span>
                         </div>
                         <div class="fader-track">
-                            <input type="range" class="vol-slider" min="0" max="127" value="100">
+                            <input type="range" class="vol-slider" min="0" max="127" value="127">
                         </div>
                     </div>
                     <button class="mute-btn">🔇 Mute</button>
@@ -1252,7 +1430,8 @@
                 const muteBtn = strip.querySelector('.mute-btn');
 
                 slider.addEventListener('input', () => {
-                    valueDisplay.textContent = slider.value;
+                    const pct = Math.round((slider.value / 127) * 100);
+                    valueDisplay.textContent = pct + '%';
                     sendCC(7, parseInt(slider.value), ch);
                 });
 
@@ -1280,22 +1459,22 @@
                     <div class="gain-control">
                         <div class="gain-header">
                             <label>Input ${input}</label>
-                            <span class="gain-value">64</span>
+                            <span class="gain-value">50%</span>
                         </div>
                         <div class="gain-slider-container">
                             <div class="gain-scale">
-                                <span>0</span>
-                                <span>32</span>
-                                <span class="center-mark">● 64</span>
-                                <span>96</span>
-                                <span>127</span>
+                                <span>0 —</span>
+                                <span>25 —</span>
+                                <span class="center-mark">— 50 —</span>
+                                <span>— 75</span>
+                                <span>— 100</span>
                             </div>
                             <input type="range" class="gain-slider" data-input="${input}" min="0" max="127" value="64">
                         </div>
                         <div class="gain-buttons">
-                            <button class="gain-min" data-input="${input}">Min</button>
-                            <button class="gain-center" data-input="${input}">Center</button>
-                            <button class="gain-max" data-input="${input}">Max</button>
+                            <button class="gain-min" data-input="${input}">0%</button>
+                            <button class="gain-center" data-input="${input}">50%</button>
+                            <button class="gain-max" data-input="${input}">100%</button>
                         </div>
                     </div>
                 `;
@@ -1305,25 +1484,26 @@
                 const valueDisplay = group.querySelector('.gain-value');
 
                 slider.addEventListener('input', () => {
-                    valueDisplay.textContent = slider.value;
+                    const pct = Math.round((slider.value / 127) * 100);
+                    valueDisplay.textContent = pct + '%';
                     sendCC(9, parseInt(slider.value), input);
                 });
 
                 group.querySelector('.gain-min').addEventListener('click', () => {
                     slider.value = 0;
-                    valueDisplay.textContent = '0';
+                    valueDisplay.textContent = '0%';
                     sendCC(9, 0, input);
                 });
 
                 group.querySelector('.gain-center').addEventListener('click', () => {
                     slider.value = 64;
-                    valueDisplay.textContent = '64';
+                    valueDisplay.textContent = '50%';
                     sendCC(9, 64, input);
                 });
 
                 group.querySelector('.gain-max').addEventListener('click', () => {
                     slider.value = 127;
-                    valueDisplay.textContent = '127';
+                    valueDisplay.textContent = '100%';
                     sendCC(9, 127, input);
                 });
             }
@@ -1354,6 +1534,12 @@
 
         function handleCueClick(note, btn) {
             sendNote(note, 100, 1);
+
+            // Flash animation
+            btn.classList.remove('triggered');
+            void btn.offsetWidth; // Force reflow to restart animation
+            btn.classList.add('triggered');
+            setTimeout(() => btn.classList.remove('triggered'), 300);
 
             if (state.cueRecMode) {
                 // Recording a cue marker
@@ -1392,19 +1578,43 @@
             try {
                 midiAccess = await navigator.requestMIDIAccess({ sysex: false });
                 refreshOutputs();
-                midiAccess.onstatechange = refreshOutputs;
+                midiAccess.onstatechange = (e) => {
+                    refreshOutputs();
+                    // Check if our connected device was disconnected
+                    if (midiOutput && e.port.id === midiOutput.id && e.port.state === 'disconnected') {
+                        midiOutput = null;
+                        updateStatus('disconnected', 'TP-7 disconnected');
+                        log('TP-7 disconnected');
+                    }
+                    autoConnectTP7();
+                };
                 log('MIDI access granted');
+                // Try auto-connect on init
+                autoConnectTP7();
             } catch (err) {
                 log('MIDI access denied: ' + err.message);
                 updateStatus('disconnected', 'MIDI Access Denied');
             }
         }
 
+        function autoConnectTP7() {
+            if (midiOutput) return; // Already connected
+
+            for (const output of midiAccess.outputs.values()) {
+                if (output.name.toLowerCase().includes('tp-7')) {
+                    midiOutput = output;
+                    // Update dropdown selection
+                    document.getElementById('midi-output').value = output.id;
+                    updateStatus('connected', `Connected: ${output.name}`);
+                    log(`Auto-connected to ${output.name}`);
+                    return;
+                }
+            }
+        }
+
         function refreshOutputs() {
             const outSelect = document.getElementById('midi-output');
-            const inSelect = document.getElementById('midi-input');
             outSelect.innerHTML = '<option value="">Select MIDI Output...</option>';
-            inSelect.innerHTML = '<option value="">Select MIDI Input (monitor)...</option>';
 
             if (!midiAccess) return;
 
@@ -1417,50 +1627,21 @@
                 }
                 outSelect.appendChild(option);
             }
-
-            for (const input of midiAccess.inputs.values()) {
-                const option = document.createElement('option');
-                option.value = input.id;
-                option.textContent = input.name;
-                if (input.name.toLowerCase().includes('tp-7')) {
-                    option.selected = true;
-                }
-                inSelect.appendChild(option);
-            }
         }
 
         function connect() {
             const outSelect = document.getElementById('midi-output');
-            const inSelect = document.getElementById('midi-input');
             const outputId = outSelect.value;
-            const inputId = inSelect.value;
 
             if (!outputId) {
                 log('Please select a MIDI output');
                 return;
             }
 
-            // Connect output
             midiOutput = midiAccess.outputs.get(outputId);
 
-            // Connect input (optional, for monitoring)
-            if (inputId) {
-                // Disconnect previous input
-                if (midiInput) {
-                    midiInput.onmidimessage = null;
-                }
-                midiInput = midiAccess.inputs.get(inputId);
-                if (midiInput) {
-                    midiInput.onmidimessage = handleMidiInput;
-                    log(`Monitoring input: ${midiInput.name}`);
-                }
-            }
-
             if (midiOutput) {
-                const statusText = midiInput
-                    ? `Connected: ${midiOutput.name} (monitoring)`
-                    : `Connected: ${midiOutput.name}`;
-                updateStatus('connected', statusText);
+                updateStatus('connected', `Connected: ${midiOutput.name}`);
                 log(`Connected to ${midiOutput.name}`);
             } else {
                 updateStatus('disconnected', 'Connection failed');
@@ -1468,85 +1649,21 @@
             }
         }
 
-        // Handle incoming MIDI from TP-7
-        function handleMidiInput(event) {
-            const [status, data1, data2] = event.data;
-            const channel = (status & 0x0F) + 1;
-            const messageType = status & 0xF0;
-
-            // Control Change
-            if (messageType === 0xB0) {
-                const cc = data1;
-                const value = data2;
-
-                switch (cc) {
-                    case 20: // Up button
-                        log(`⬆️ UP button (${value})`);
-                        break;
-                    case 21: // Down button
-                        log(`⬇️ DOWN button (${value})`);
-                        break;
-                    case 22: // Rec button
-                        log(`⏺️ REC button (${value})`);
-                        if (value >= 64) {
-                            state.recording = true;
-                            document.getElementById('btn-rec').classList.add('active');
-                        } else {
-                            state.recording = false;
-                            document.getElementById('btn-rec').classList.remove('active');
-                        }
-                        updateTransportState(state.transport);
-                        break;
-                    case 23: // Play button
-                        log(`▶️ PLAY button (${value})`);
-                        if (value >= 64) {
-                            setTransport(68);
-                        }
-                        break;
-                    case 24: // Stop button
-                        log(`⏹️ STOP button (${value})`);
-                        if (value >= 64) {
-                            setTransport(64);
-                            stopCuePlay();
-                        }
-                        break;
-                    case 25: // Left button
-                        log(`◀️ LEFT button (${value})`);
-                        break;
-                    case 26: // Right button
-                        log(`▶️ RIGHT button (${value})`);
-                        break;
-                    case 27: // Memo button
-                        log(`🎤 MEMO button (${value})`);
-                        break;
-                    case 30: // Wheel (relative)
-                        const rel = value > 63 ? value - 128 : value;
-                        log(`🎡 WHEEL: ${rel > 0 ? '+' : ''}${rel}`);
-                        break;
-                    default:
-                        log(`CC ${cc} = ${value} (ch ${channel})`);
-                }
-            }
-            // Pitch Bend (rocker)
-            else if (messageType === 0xE0) {
-                const pitchBend = ((data2 << 7) | data1) - 8192;
-                log(`🎚️ ROCKER: ${pitchBend}`);
-            }
-            // Note On
-            else if (messageType === 0x90 && data2 > 0) {
-                log(`🎵 Note ON: ${data1} vel ${data2}`);
-            }
-            // Note Off
-            else if (messageType === 0x80 || (messageType === 0x90 && data2 === 0)) {
-                log(`🎵 Note OFF: ${data1}`);
-            }
-        }
-
         function updateStatus(statusState, text) {
             const statusEl = document.getElementById('status');
             const statusText = document.getElementById('status-text');
+            const connectBtn = document.getElementById('connect-btn');
             statusEl.className = statusState;
             statusText.textContent = text;
+
+            // Disable connect button when connected
+            if (statusState === 'connected') {
+                connectBtn.disabled = true;
+                connectBtn.textContent = 'Connected';
+            } else {
+                connectBtn.disabled = false;
+                connectBtn.textContent = 'Connect';
+            }
         }
 
         // =====================================================================
@@ -1592,18 +1709,55 @@
                 });
             });
 
-            // Pitch bend
+            // Pitch bend / Speed modifier
             const pitchSlider = document.getElementById('pitch-bend');
-            const pitchValue = document.getElementById('pitch-value');
+
+            function updatePitchDisplay(pitch) {
+                // -8192 = x0.25 (slowest), 0 = x1, +8192 = x2
+                // Asymmetric: negative side 0.25-1, positive side 1-2
+                let multiplier;
+                if (pitch < 0) {
+                    // -8192 -> 0.25, 0 -> 1
+                    multiplier = 1 + (pitch / 8192) * 0.75;
+                } else {
+                    // 0 -> 1, +8192 -> 2
+                    multiplier = 1 + (pitch / 8192);
+                }
+                const multiplierStr = `x${multiplier.toFixed(2)}`;
+
+                document.getElementById('speed-multiplier').textContent = multiplierStr;
+                document.getElementById('pitch-value').textContent = `(pitch: ${pitch})`;
+            }
+
+            function setPitch(pitch) {
+                pitch = Math.max(-8192, Math.min(8191, pitch));
+                pitchSlider.value = pitch;
+                updatePitchDisplay(pitch);
+                sendPitchBend(pitch);
+            }
+
             pitchSlider.addEventListener('input', () => {
-                pitchValue.textContent = pitchSlider.value;
-                sendPitchBend(parseInt(pitchSlider.value));
+                const pitch = parseInt(pitchSlider.value);
+                updatePitchDisplay(pitch);
+                sendPitchBend(pitch);
             });
-            document.getElementById('pitch-center').addEventListener('click', () => {
-                pitchSlider.value = 0;
-                pitchValue.textContent = '0';
-                sendPitchBend(0);
+
+            // Pitch preset buttons
+            document.querySelectorAll('.pitch-preset').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setPitch(parseInt(btn.dataset.pitch));
+                });
             });
+
+            // Pitch scale markers
+            document.querySelectorAll('.pitch-scale span').forEach(marker => {
+                marker.addEventListener('click', () => {
+                    setPitch(parseInt(marker.dataset.pitch));
+                });
+            });
+
+            // Initialize display
+            updatePitchDisplay(0);
 
             // Loop mode buttons
             document.getElementById('loop-off').addEventListener('click', () => handleLoopClick(0));
@@ -1654,6 +1808,272 @@
             // Initialize states
             updateTransportState(64);
             updateLoopState('off');
+
+            // Edit Layout Mode
+            const editToggle = document.getElementById('edit-layout-toggle');
+            let editMode = false;
+
+            editToggle.addEventListener('click', () => {
+                editMode = !editMode;
+                editToggle.classList.toggle('active', editMode);
+                editToggle.textContent = editMode ? 'Done Editing' : 'Edit Layout';
+                toggleDraggable(editMode);
+            });
+
+            function toggleDraggable(enabled) {
+                const sections = document.querySelectorAll('#app > .section');
+                sections.forEach((section, index) => {
+                    if (enabled) {
+                        section.classList.add('draggable');
+                        section.draggable = true;
+                        section.dataset.index = index;
+                    } else {
+                        section.classList.remove('draggable', 'drag-over');
+                        section.draggable = false;
+                    }
+                });
+            }
+
+            // Drag and Drop handlers
+            let draggedEl = null;
+
+            document.getElementById('app').addEventListener('dragstart', (e) => {
+                if (!editMode || !e.target.classList.contains('section')) return;
+                draggedEl = e.target;
+                e.target.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            document.getElementById('app').addEventListener('dragend', (e) => {
+                if (!editMode || !e.target.classList.contains('section')) return;
+                e.target.classList.remove('dragging');
+                document.querySelectorAll('.section.drag-over').forEach(el => el.classList.remove('drag-over'));
+                draggedEl = null;
+                saveLayoutOrder();
+            });
+
+            document.getElementById('app').addEventListener('dragover', (e) => {
+                if (!editMode) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+
+                const section = e.target.closest('.section');
+                if (section && section !== draggedEl) {
+                    document.querySelectorAll('.section.drag-over').forEach(el => el.classList.remove('drag-over'));
+                    section.classList.add('drag-over');
+                }
+            });
+
+            document.getElementById('app').addEventListener('drop', (e) => {
+                if (!editMode) return;
+                e.preventDefault();
+
+                const dropTarget = e.target.closest('.section');
+                if (dropTarget && draggedEl && dropTarget !== draggedEl) {
+                    const app = document.getElementById('app');
+                    const sections = Array.from(app.querySelectorAll('.section'));
+                    const draggedIdx = sections.indexOf(draggedEl);
+                    const dropIdx = sections.indexOf(dropTarget);
+
+                    if (draggedIdx < dropIdx) {
+                        dropTarget.after(draggedEl);
+                    } else {
+                        dropTarget.before(draggedEl);
+                    }
+                }
+
+                document.querySelectorAll('.section.drag-over').forEach(el => el.classList.remove('drag-over'));
+            });
+
+            function saveLayoutOrder() {
+                const sections = document.querySelectorAll('#app > .section');
+                const order = Array.from(sections).map(s => s.id);
+                localStorage.setItem('tp7-layout-order', JSON.stringify(order));
+            }
+
+            function loadLayoutOrder() {
+                const saved = localStorage.getItem('tp7-layout-order');
+                if (!saved) return;
+
+                try {
+                    const order = JSON.parse(saved);
+                    const app = document.getElementById('app');
+
+                    order.forEach(id => {
+                        const section = document.getElementById(id);
+                        if (section) {
+                            app.appendChild(section);
+                        }
+                    });
+                } catch (e) {
+                    console.error('Failed to load layout order:', e);
+                }
+            }
+
+            // Save control states to localStorage
+            function saveControlState() {
+                const controlState = {
+                    transport: state.transport,
+                    recording: state.recording,
+                    loopState: state.loopState,
+                    cueRecMode: state.cueRecMode,
+                    cues: Array.from(state.cues),
+                    cueCount: state.cueCount,
+                    pitchBend: parseInt(document.getElementById('pitch-bend').value),
+                    mixerVolumes: [],
+                    mixerMutes: [],
+                    inputGains: []
+                };
+
+                // Save mixer state
+                document.querySelectorAll('.channel-strip').forEach((strip, i) => {
+                    const slider = strip.querySelector('.vol-slider');
+                    const muteBtn = strip.querySelector('.mute-btn');
+                    controlState.mixerVolumes[i] = parseInt(slider.value);
+                    controlState.mixerMutes[i] = muteBtn.classList.contains('active');
+                });
+
+                // Save input gain state
+                document.querySelectorAll('.gain-slider').forEach((slider, i) => {
+                    controlState.inputGains[i] = parseInt(slider.value);
+                });
+
+                localStorage.setItem('tp7-control-state', JSON.stringify(controlState));
+            }
+
+            function loadControlState() {
+                const saved = localStorage.getItem('tp7-control-state');
+                if (!saved) return;
+
+                try {
+                    const controlState = JSON.parse(saved);
+
+                    // Restore state object
+                    if (controlState.cueCount) {
+                        state.cueCount = controlState.cueCount;
+                        document.getElementById('cue-count').value = controlState.cueCount;
+                    }
+                    if (controlState.cues) {
+                        state.cues = new Set(controlState.cues);
+                    }
+
+                    // Restore pitch bend
+                    if (controlState.pitchBend !== undefined) {
+                        document.getElementById('pitch-bend').value = controlState.pitchBend;
+                        updatePitchDisplay(controlState.pitchBend);
+                    }
+
+                    // Restore transport
+                    if (controlState.transport !== undefined) {
+                        updateTransportState(controlState.transport);
+                    }
+
+                    // Restore loop state
+                    if (controlState.loopState) {
+                        updateLoopState(controlState.loopState);
+                    }
+
+                    // Restore cue rec mode
+                    if (controlState.cueRecMode) {
+                        state.cueRecMode = true;
+                        document.getElementById('cue-rec-on').classList.add('active', 'rec-active');
+                        document.getElementById('cue-rec-off').classList.remove('active');
+                    }
+
+                    // Restore mixer (after createChannelStrips)
+                    setTimeout(() => {
+                        if (controlState.mixerVolumes) {
+                            document.querySelectorAll('.channel-strip').forEach((strip, i) => {
+                                if (controlState.mixerVolumes[i] !== undefined) {
+                                    const slider = strip.querySelector('.vol-slider');
+                                    const valueDisplay = strip.querySelector('.ch-value');
+                                    slider.value = controlState.mixerVolumes[i];
+                                    const pct = Math.round((slider.value / 127) * 100);
+                                    valueDisplay.textContent = pct + '%';
+                                }
+                                if (controlState.mixerMutes && controlState.mixerMutes[i]) {
+                                    const muteBtn = strip.querySelector('.mute-btn');
+                                    muteBtn.classList.add('active');
+                                    muteBtn.textContent = '🔊 Unmute';
+                                }
+                            });
+                        }
+
+                        if (controlState.inputGains) {
+                            document.querySelectorAll('.gain-slider').forEach((slider, i) => {
+                                if (controlState.inputGains[i] !== undefined) {
+                                    slider.value = controlState.inputGains[i];
+                                    const valueDisplay = slider.closest('.gain-control').querySelector('.gain-value');
+                                    const pct = Math.round((slider.value / 127) * 100);
+                                    valueDisplay.textContent = pct + '%';
+                                }
+                            });
+                        }
+                    }, 100);
+
+                } catch (e) {
+                    console.error('Failed to load control state:', e);
+                }
+            }
+
+            // Auto-save on changes
+            function setupAutoSave() {
+                // Debounce save
+                let saveTimeout;
+                const debouncedSave = () => {
+                    clearTimeout(saveTimeout);
+                    saveTimeout = setTimeout(saveControlState, 500);
+                };
+
+                // Listen for changes
+                document.getElementById('pitch-bend').addEventListener('input', debouncedSave);
+                document.getElementById('speed-slider').addEventListener('input', debouncedSave);
+                document.getElementById('channel-strips').addEventListener('input', debouncedSave);
+                document.getElementById('channel-strips').addEventListener('click', debouncedSave);
+                document.getElementById('gain-controls').addEventListener('input', debouncedSave);
+                document.getElementById('loop-toggle').addEventListener('click', debouncedSave);
+                document.getElementById('cue-grid').addEventListener('click', debouncedSave);
+                document.getElementById('cue-count').addEventListener('change', debouncedSave);
+            }
+
+            // Load saved layout and state on init
+            loadLayoutOrder();
+            loadControlState();
+            setupAutoSave();
+
+            // Keyboard bindings
+            document.addEventListener('keydown', (e) => {
+                // Ignore if typing in an input
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+                // Number keys map directly: 1->1, 2->2, ..., 9->9, 0->0
+                // Backtick ` also maps to 0 (convenient for Mac)
+                if (e.key >= '1' && e.key <= '9') {
+                    triggerCueByKeyboard(parseInt(e.key));
+                    e.preventDefault();
+                } else if (e.key === '0' || e.key === '`') {
+                    triggerCueByKeyboard(0);
+                    e.preventDefault();
+                }
+                // Transport shortcuts
+                else if (e.key === ' ') { // Space = Play/Stop toggle
+                    if (state.transport === 64) {
+                        setTransport(68);
+                    } else {
+                        setTransport(64);
+                        stopCuePlay();
+                    }
+                    e.preventDefault();
+                }
+            });
+
+            function triggerCueByKeyboard(cueNum) {
+                if (cueNum >= state.cueCount) return;
+                const btn = document.querySelector(`.cue-btn[data-note="${cueNum}"]`);
+                if (btn) {
+                    handleCueClick(cueNum, btn);
+                }
+            }
         });
     </script>
 </body>
