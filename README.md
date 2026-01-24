@@ -35,6 +35,25 @@ Works on phones, tablets, and computers - right in your browser.
 
 ---
 
+## Known Bugs & Limitations
+
+These are TP-7 firmware limitations discovered through MIDI experimentation:
+
+| Issue | Description |
+|-------|-------------|
+| **No state feedback** | TP-7 never reports its state via MIDI. You cannot query transport, loop, or cue states. UI may become out of sync after reconnection or physical interaction. |
+| **Controller Mode is separate** | TP-7 only sends button events (CC 20-27) in Controller Mode, which is mutually exclusive with receiving MIDI commands. You cannot control AND receive events simultaneously. |
+| **No stop during playback** | In playback mode (after Play or Cue trigger), CC18 value 64 no longer stops. Stop point shifts between 60-61. To stop: set CC18=60 AND Pitch Bend=+708. |
+| **SPD/Pitch Bend disconnect** | The Pitch Bend speed multiplier and SPD on screen SHOULD be the same control, but they're completely separate. Pitch Bend changes are NOT visible on TP-7 display. Likely a firmware bug. |
+| **Recording via MIDI is useless** | CC14 arms recording, but you can't control playback in record mode via MIDI (only rocker emulation works). Use physical controls for recording. |
+| **No MIDI way to clear cues** | To clear cue markers on TP-7, you must change the track manually on the device. |
+| **MIDI-CUE setting required** | You must enable MIDI-CUE in TP-7 settings for cue markers to work via MIDI. |
+| **Loop is a state machine** | CC17 must follow sequence: Off(0) → In(1) → Out(2) → Off(0). Can't set Out without In first. Can't change points while loop is active. |
+
+See [MIDI_SPEC.md](MIDI_SPEC.md) for full technical details.
+
+---
+
 **Last Updated:** 2026-01-24 | **Firmware:** 1.1.11
 
 *Unofficial community project. TP-7 is a product of Teenage Engineering.*
