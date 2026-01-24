@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TP-7 MIDI Controller</title>
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --surface: #2d2d2d;
+            --surface-hover: #3d3d3d;
+            --text: #e0e0e0;
+            --text-dim: #888;
+            --accent: #ff6b35;
+            --accent-dim: #cc5529;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --danger: #f44336;
+            --border: #444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            margin-bottom: 5px;
+        }
+
+        h1 span {
+            color: var(--accent);
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        /* Connection Section */
+        #connection {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .connection-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        #status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            background: var(--bg);
+        }
+
+        #status.connected { background: rgba(76, 175, 80, 0.2); color: var(--success); }
+        #status.disconnected { background: rgba(244, 67, 54, 0.2); color: var(--danger); }
+        #status.warning { background: rgba(255, 152, 0, 0.2); color: var(--warning); }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        select, button {
+            padding: 10px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        select:hover, button:hover {
+            border-color: var(--accent);
+        }
+
+        button.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        button.primary:hover {
+            background: var(--accent-dim);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Sections */
+        .section {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Transport Controls */
+        .transport-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .transport-btn {
+            min-width: 80px;
+            padding: 15px 20px;
+            font-size: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .transport-btn .icon {
+            font-size: 1.5rem;
+        }
+
+        .transport-btn.rec { background: rgba(244, 67, 54, 0.2); border-color: var(--danger); }
+        .transport-btn.rec.active { background: var(--danger); color: white; }
+
+        /* Control Grid */
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .control-group {
+            background: var(--bg);
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .control-group .value {
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        /* Sliders */
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--border);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+        }
+
+        /* Toggle Buttons */
+        .toggle-group {
+            display: flex;
+            gap: 5px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 10px;
+            font-size: 0.85rem;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        /* Channel Strips */
+        .channel-strips {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .channel-strips {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .channel-strip {
+            background: var(--bg);
+            border-radius: 6px;
+            padding: 15px 10px;
+            text-align: center;
+        }
+
+        .channel-strip .ch-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+        }
+
+        .channel-strip .volume-slider {
+            height: 100px;
+            width: 6px;
+            margin: 0 auto 10px;
+            position: relative;
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .channel-strip input[type="range"] {
+            width: 100px;
+            transform: rotate(-90deg);
+            transform-origin: 50px 50px;
+            position: absolute;
+            left: -47px;
+            top: 0;
+        }
+
+        .channel-strip .mute-btn {
+            width: 100%;
+            padding: 8px;
+            font-size: 0.75rem;
+        }
+
+        .channel-strip .mute-btn.active {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: white;
+        }
+
+        /* Pitch Bend */
+        .pitch-bend-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .pitch-bend-slider {
+            flex: 1;
+        }
+
+        .center-btn {
+            padding: 8px 16px;
+            font-size: 0.8rem;
+        }
+
+        /* Cue Section */
+        .cue-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .cue-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .cue-btn {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            padding: 5px;
+        }
+
+        .cue-btn:active {
+            background: var(--accent);
+            transform: scale(0.95);
+        }
+
+        /* Log */
+        #log {
+            background: var(--bg);
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        #log .entry {
+            padding: 3px 0;
+            border-bottom: 1px solid var(--surface);
+        }
+
+        #log .entry:last-child {
+            border-bottom: none;
+        }
+
+        #log .time {
+            color: var(--text-dim);
+            margin-right: 10px;
+        }
+
+        #log .msg {
+            color: var(--text);
+        }
+
+        /* Not Supported */
+        .not-supported {
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid var(--danger);
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .not-supported h2 {
+            color: var(--danger);
+            margin-bottom: 10px;
+        }
+
+        .not-supported p {
+            color: var(--text-dim);
+            margin-bottom: 15px;
+        }
+
+        .not-supported a {
+            color: var(--accent);
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span>TP-7</span> MIDI Controller</h1>
+            <p class="subtitle">Web MIDI interface for Teenage Engineering TP-7</p>
+        </header>
+
+        <div id="midi-not-supported" class="not-supported" style="display: none;">
+            <h2>Web MIDI Not Supported</h2>
+            <p>Your browser doesn't support the Web MIDI API.</p>
+            <p>Please use <a href="https://www.google.com/chrome/" target="_blank">Chrome</a>,
+               <a href="https://www.microsoft.com/edge" target="_blank">Edge</a>, or
+               <a href="https://www.opera.com/" target="_blank">Opera</a>.</p>
+        </div>
+
+        <div id="app">
+            <!-- Connection -->
+            <div id="connection" class="section">
+                <div class="connection-row">
+                    <div id="status" class="disconnected">
+                        <span class="status-dot"></span>
+                        <span id="status-text">Disconnected</span>
+                    </div>
+                    <select id="midi-output">
+                        <option value="">Select MIDI Output...</option>
+                    </select>
+                    <button id="connect-btn" class="primary">Connect</button>
+                    <button id="refresh-btn">Refresh</button>
+                </div>
+            </div>
+
+            <!-- Transport -->
+            <div class="section">
+                <h2>Transport</h2>
+                <div class="transport-buttons">
+                    <button class="transport-btn" id="btn-super-rew" title="Super Fast Rewind">
+                        <span class="icon">⏪</span>
+                        <span>Fast REW</span>
+                    </button>
+                    <button class="transport-btn" id="btn-rew" title="Rewind">
+                        <span class="icon">◀</span>
+                        <span>REW</span>
+                    </button>
+                    <button class="transport-btn" id="btn-stop" title="Stop">
+                        <span class="icon">⏹</span>
+                        <span>Stop</span>
+                    </button>
+                    <button class="transport-btn" id="btn-play" title="Play Forward">
+                        <span class="icon">▶</span>
+                        <span>Play</span>
+                    </button>
+                    <button class="transport-btn" id="btn-super-fwd" title="Super Fast Forward">
+                        <span class="icon">⏩</span>
+                        <span>Fast FWD</span>
+                    </button>
+                    <button class="transport-btn rec" id="btn-rec" title="Record">
+                        <span class="icon">⏺</span>
+                        <span>Rec</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Playback Speed -->
+            <div class="section">
+                <h2>Playback Speed (Pitch Bend)</h2>
+                <div class="control-grid">
+                    <div class="control-group" style="grid-column: 1 / -1;">
+                        <label>Speed</label>
+                        <div class="value" id="pitch-value">0</div>
+                        <div class="pitch-bend-container">
+                            <input type="range" id="pitch-bend" min="-8192" max="8191" value="0" class="pitch-bend-slider">
+                            <button class="center-btn" id="pitch-center">Center</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loop Control -->
+            <div class="section">
+                <h2>Loop Control</h2>
+                <div class="control-grid">
+                    <div class="control-group">
+                        <label>Loop Mode (CC 17)</label>
+                        <div class="toggle-group">
+                            <button class="toggle-btn active" data-loop="0">Off</button>
+                            <button class="toggle-btn" data-loop="1">In</button>
+                            <button class="toggle-btn" data-loop="2">Out</button>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label>Cue Rec Mode (CC 16)</label>
+                        <div class="toggle-group">
+                            <button class="toggle-btn active" id="cue-rec-off">Off</button>
+                            <button class="toggle-btn" id="cue-rec-on">On</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FFwd/Rew Fine Control -->
+            <div class="section">
+                <h2>FFwd / Rewind (CC 18)</h2>
+                <div class="control-group">
+                    <label>Position: <span id="ffwd-value">64</span> (64 = Stop, &lt;64 = Rev, &gt;64 = Fwd)</label>
+                    <input type="range" id="ffwd-rew" min="0" max="127" value="64">
+                </div>
+            </div>
+
+            <!-- Mixer -->
+            <div class="section">
+                <h2>Mixer (CC 7 Volume / CC 120 Mute)</h2>
+                <div class="channel-strips">
+                    <div class="channel-strip" data-channel="1">
+                        <div class="ch-label">CH 1</div>
+                        <div class="volume-slider">
+                            <input type="range" min="0" max="127" value="100" class="vol-slider">
+                        </div>
+                        <button class="mute-btn">Mute</button>
+                    </div>
+                    <div class="channel-strip" data-channel="2">
+                        <div class="ch-label">CH 2</div>
+                        <div class="volume-slider">
+                            <input type="range" min="0" max="127" value="100" class="vol-slider">
+                        </div>
+                        <button class="mute-btn">Mute</button>
+                    </div>
+                    <div class="channel-strip" data-channel="3">
+                        <div class="ch-label">CH 3</div>
+                        <div class="volume-slider">
+                            <input type="range" min="0" max="127" value="100" class="vol-slider">
+                        </div>
+                        <button class="mute-btn">Mute</button>
+                    </div>
+                    <div class="channel-strip" data-channel="4">
+                        <div class="ch-label">CH 4</div>
+                        <div class="volume-slider">
+                            <input type="range" min="0" max="127" value="100" class="vol-slider">
+                        </div>
+                        <button class="mute-btn">Mute</button>
+                    </div>
+                    <div class="channel-strip" data-channel="5">
+                        <div class="ch-label">CH 5</div>
+                        <div class="volume-slider">
+                            <input type="range" min="0" max="127" value="100" class="vol-slider">
+                        </div>
+                        <button class="mute-btn">Mute</button>
+                    </div>
+                    <div class="channel-strip" data-channel="6">
+                        <div class="ch-label">CH 6</div>
+                        <div class="volume-slider">
+                            <input type="range" min="0" max="127" value="100" class="vol-slider">
+                        </div>
+                        <button class="mute-btn">Mute</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Gain -->
+            <div class="section">
+                <h2>Input Gain (CC 9)</h2>
+                <div class="control-grid">
+                    <div class="control-group">
+                        <label>Input 1: <span class="gain-val">64</span></label>
+                        <input type="range" class="gain-slider" data-input="1" min="0" max="127" value="64">
+                    </div>
+                    <div class="control-group">
+                        <label>Input 2: <span class="gain-val">64</span></label>
+                        <input type="range" class="gain-slider" data-input="2" min="0" max="127" value="64">
+                    </div>
+                    <div class="control-group">
+                        <label>Input 3: <span class="gain-val">64</span></label>
+                        <input type="range" class="gain-slider" data-input="3" min="0" max="127" value="64">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cue Markers -->
+            <div class="section">
+                <h2>Cue Markers (Note On/Off)</h2>
+                <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 15px;">
+                    Enable Cue Rec Mode above to record markers. Click to trigger/recall cues.
+                </p>
+                <div class="cue-grid" id="cue-grid">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+
+            <!-- MIDI Log -->
+            <div class="section">
+                <h2>MIDI Log</h2>
+                <div id="log"></div>
+            </div>
+        </div>
+
+        <footer>
+            <p>TP-7 MIDI Controller | Based on firmware 1.1.11 |
+               <a href="https://teenage.engineering/guides/tp-7" target="_blank">Official Docs</a></p>
+        </footer>
+    </div>
+
+    <script>
+        // =====================================================================
+        // TP-7 MIDI Controller - Web MIDI Implementation
+        // =====================================================================
+
+        let midiOutput = null;
+        let midiAccess = null;
+
+        // Check Web MIDI support
+        if (!navigator.requestMIDIAccess) {
+            document.getElementById('midi-not-supported').style.display = 'block';
+            document.getElementById('app').style.display = 'none';
+        }
+
+        // =====================================================================
+        // MIDI Utilities
+        // =====================================================================
+
+        function sendCC(cc, value, channel = 1) {
+            if (!midiOutput) return;
+            const status = 0xB0 | (channel - 1);
+            midiOutput.send([status, cc, Math.min(127, Math.max(0, value))]);
+            log(`CC ${cc} = ${value} (ch ${channel})`);
+        }
+
+        function sendNote(note, velocity = 100, channel = 1) {
+            if (!midiOutput) return;
+            const noteOn = 0x90 | (channel - 1);
+            const noteOff = 0x80 | (channel - 1);
+            midiOutput.send([noteOn, note, velocity]);
+            setTimeout(() => {
+                midiOutput.send([noteOff, note, 0]);
+            }, 50);
+            log(`Note ${note} vel ${velocity} (ch ${channel})`);
+        }
+
+        function sendPitchBend(value, channel = 1) {
+            if (!midiOutput) return;
+            // value: -8192 to 8191 -> 0 to 16383
+            const bent = value + 8192;
+            const lsb = bent & 0x7F;
+            const msb = (bent >> 7) & 0x7F;
+            const status = 0xE0 | (channel - 1);
+            midiOutput.send([status, lsb, msb]);
+            log(`Pitch Bend = ${value}`);
+        }
+
+        function onoff(v) {
+            return v ? 127 : 0;
+        }
+
+        // =====================================================================
+        // Logging
+        // =====================================================================
+
+        function log(msg) {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'entry';
+            entry.innerHTML = `<span class="time">${time}</span><span class="msg">${msg}</span>`;
+            logEl.insertBefore(entry, logEl.firstChild);
+            // Keep only last 50 entries
+            while (logEl.children.length > 50) {
+                logEl.removeChild(logEl.lastChild);
+            }
+        }
+
+        // =====================================================================
+        // Connection Management
+        // =====================================================================
+
+        async function initMIDI() {
+            try {
+                midiAccess = await navigator.requestMIDIAccess({ sysex: false });
+                refreshOutputs();
+                midiAccess.onstatechange = refreshOutputs;
+                log('MIDI access granted');
+            } catch (err) {
+                log('MIDI access denied: ' + err.message);
+                updateStatus('disconnected', 'MIDI Access Denied');
+            }
+        }
+
+        function refreshOutputs() {
+            const select = document.getElementById('midi-output');
+            select.innerHTML = '<option value="">Select MIDI Output...</option>';
+
+            if (!midiAccess) return;
+
+            for (const output of midiAccess.outputs.values()) {
+                const option = document.createElement('option');
+                option.value = output.id;
+                option.textContent = output.name;
+                if (output.name.toLowerCase().includes('tp-7')) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            }
+        }
+
+        function connect() {
+            const select = document.getElementById('midi-output');
+            const outputId = select.value;
+
+            if (!outputId) {
+                log('Please select a MIDI output');
+                return;
+            }
+
+            midiOutput = midiAccess.outputs.get(outputId);
+            if (midiOutput) {
+                updateStatus('connected', `Connected: ${midiOutput.name}`);
+                log(`Connected to ${midiOutput.name}`);
+            } else {
+                updateStatus('disconnected', 'Connection failed');
+                log('Failed to connect');
+            }
+        }
+
+        function updateStatus(state, text) {
+            const statusEl = document.getElementById('status');
+            const statusText = document.getElementById('status-text');
+            statusEl.className = state;
+            statusText.textContent = text;
+        }
+
+        // =====================================================================
+        // UI Event Handlers
+        // =====================================================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMIDI();
+
+            // Connection buttons
+            document.getElementById('connect-btn').addEventListener('click', connect);
+            document.getElementById('refresh-btn').addEventListener('click', refreshOutputs);
+
+            // Transport buttons
+            document.getElementById('btn-super-rew').addEventListener('click', () => sendCC(18, 0));
+            document.getElementById('btn-rew').addEventListener('click', () => sendCC(18, 60));
+            document.getElementById('btn-stop').addEventListener('click', () => sendCC(18, 64));
+            document.getElementById('btn-play').addEventListener('click', () => sendCC(18, 68));
+            document.getElementById('btn-super-fwd').addEventListener('click', () => sendCC(18, 127));
+
+            // Record toggle
+            const recBtn = document.getElementById('btn-rec');
+            recBtn.addEventListener('click', () => {
+                recBtn.classList.toggle('active');
+                sendCC(14, recBtn.classList.contains('active') ? 127 : 0);
+            });
+
+            // Pitch bend
+            const pitchSlider = document.getElementById('pitch-bend');
+            const pitchValue = document.getElementById('pitch-value');
+            pitchSlider.addEventListener('input', () => {
+                pitchValue.textContent = pitchSlider.value;
+                sendPitchBend(parseInt(pitchSlider.value));
+            });
+            document.getElementById('pitch-center').addEventListener('click', () => {
+                pitchSlider.value = 0;
+                pitchValue.textContent = '0';
+                sendPitchBend(0);
+            });
+
+            // FFwd/Rew slider
+            const ffwdSlider = document.getElementById('ffwd-rew');
+            const ffwdValue = document.getElementById('ffwd-value');
+            ffwdSlider.addEventListener('input', () => {
+                ffwdValue.textContent = ffwdSlider.value;
+                sendCC(18, parseInt(ffwdSlider.value));
+            });
+
+            // Loop mode buttons
+            document.querySelectorAll('[data-loop]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('[data-loop]').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    sendCC(17, parseInt(btn.dataset.loop));
+                });
+            });
+
+            // Cue rec mode
+            document.getElementById('cue-rec-off').addEventListener('click', () => {
+                document.getElementById('cue-rec-off').classList.add('active');
+                document.getElementById('cue-rec-on').classList.remove('active');
+                sendCC(16, 0);
+            });
+            document.getElementById('cue-rec-on').addEventListener('click', () => {
+                document.getElementById('cue-rec-on').classList.add('active');
+                document.getElementById('cue-rec-off').classList.remove('active');
+                sendCC(16, 127);
+            });
+
+            // Channel strips
+            document.querySelectorAll('.channel-strip').forEach(strip => {
+                const channel = parseInt(strip.dataset.channel);
+                const volSlider = strip.querySelector('.vol-slider');
+                const muteBtn = strip.querySelector('.mute-btn');
+
+                volSlider.addEventListener('input', () => {
+                    sendCC(7, parseInt(volSlider.value), channel);
+                });
+
+                muteBtn.addEventListener('click', () => {
+                    muteBtn.classList.toggle('active');
+                    sendCC(120, muteBtn.classList.contains('active') ? 127 : 0, channel);
+                });
+            });
+
+            // Input gain sliders
+            document.querySelectorAll('.gain-slider').forEach(slider => {
+                const input = parseInt(slider.dataset.input);
+                const label = slider.parentElement.querySelector('.gain-val');
+                slider.addEventListener('input', () => {
+                    label.textContent = slider.value;
+                    sendCC(9, parseInt(slider.value), input);
+                });
+            });
+
+            // Generate cue marker buttons (notes 0-31 for practical use)
+            const cueGrid = document.getElementById('cue-grid');
+            for (let i = 0; i < 32; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'cue-btn';
+                btn.textContent = i;
+                btn.addEventListener('click', () => sendNote(i, 100, 1));
+                cueGrid.appendChild(btn);
+            }
+        });
+    </script>
+</body>
+</html>
