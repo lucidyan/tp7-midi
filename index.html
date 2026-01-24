@@ -1333,18 +1333,18 @@
                 <div class="transport-slider-container">
                     <label>Rocker Speed</label>
                     <div class="speed-display">
-                        <span class="speed-multiplier" id="rocker-state">⏹ Stopped</span>
+                        <span class="speed-multiplier" id="rocker-state">0x</span>
                         <span class="speed-pitch" id="speed-value">(CC18: 64)</span>
                     </div>
                     <div class="slider-with-markers">
                         <div class="scale-with-ticks">
-                            <span data-val="0">⏪ 0</span>
-                            <span data-val="32">32</span>
-                            <span data-val="60">◀ 60</span>
-                            <span data-val="64" class="center-mark">⏹ 64</span>
-                            <span data-val="68">68 ▶</span>
-                            <span data-val="96">96</span>
-                            <span data-val="127">127 ⏩</span>
+                            <span data-val="0">-16x</span>
+                            <span data-val="32">-8x</span>
+                            <span data-val="60">-1x</span>
+                            <span data-val="64" class="center-mark">0x</span>
+                            <span data-val="68">+1x</span>
+                            <span data-val="96">+8x</span>
+                            <span data-val="127">+16x</span>
                         </div>
                         <input type="range" id="speed-slider" min="0" max="127" value="64">
                     </div>
@@ -1462,40 +1462,42 @@
 
             const stateEl = document.getElementById('transport-state');
             const rockerStateEl = document.getElementById('rocker-state');
-            let stateName, stateClass;
+            let stateName, stateClass, rockerSpeed;
+
+            // Calculate rocker speed multiplier
+            // 64 = 0x (stop), 68 = +1x, 60 = -1x, 0 = -16x, 127 = +16x
+            if (value === 64) {
+                rockerSpeed = '0x';
+            } else if (value < 64) {
+                // Reverse: 0 = -16x, 60 = -1x
+                const mult = Math.round((64 - value) / 4);
+                rockerSpeed = `-${mult}x`;
+            } else {
+                // Forward: 68 = +1x, 127 = +16x
+                const mult = Math.round((value - 64) / 4);
+                rockerSpeed = `+${mult}x`;
+            }
 
             if (state.recording) {
-                stateName = '⏺ Recording';
+                stateName = '⏺ Rec';
                 stateClass = 'recording';
             } else if (state.cuePlayActive) {
-                stateName = `🎯 Cue ${state.lastCuePlayed} Playing`;
+                stateName = `🎯 Cue ${state.lastCuePlayed}`;
                 stateClass = 'cue-play';
             } else if (value === 64) {
-                stateName = '⏹ Stopped';
+                stateName = '⏹ Stop';
                 stateClass = 'stopped';
             } else if (value < 64) {
-                if (value === 0) {
-                    stateName = '⏪ Fast Rewind';
-                } else if (value === 60) {
-                    stateName = '◀ Rewind x1';
-                } else {
-                    stateName = `◀ Rew ${value}`;
-                }
+                stateName = '◀ Rew';
                 stateClass = 'rewinding';
             } else {
-                if (value === 127) {
-                    stateName = '⏩ Fast Forward';
-                } else if (value === 68) {
-                    stateName = '▶ Play x1';
-                } else {
-                    stateName = `▶ Fwd ${value}`;
-                }
+                stateName = '▶ Fwd';
                 stateClass = value === 68 ? 'playing' : 'forwarding';
             }
 
             stateEl.textContent = stateName;
             stateEl.className = 'transport-state ' + stateClass;
-            if (rockerStateEl) rockerStateEl.textContent = stateName;
+            if (rockerStateEl) rockerStateEl.textContent = rockerSpeed;
 
             // Show/hide cue play warning
             const cueWarning = document.getElementById('cue-play-warning');
