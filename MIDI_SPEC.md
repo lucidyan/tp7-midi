@@ -1,4 +1,4 @@
-# TP-7 MIDI Specification - Experimental Findings
+# TP-7 MIDI Specification
 
 > **Firmware Version:** 1.1.11 (2026.01.24)
 >
