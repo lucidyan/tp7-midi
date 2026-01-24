@@ -1,7 +1,14 @@
 # TP-7 Firmware Changelog
 
-**Document Version:** 1.1.11
 **Last Updated:** 2026-01-24
+**Firmware Version:** 1.1.11
+
+**Sources:**
+- Firmware Downloads: https://teenage.engineering/downloads/tp-7
+- Official Manual: https://teenage.engineering/guides/tp-7
+
+**Related Documents:**
+- [MANUAL.md](MANUAL.md) - Full accessible manual
 
 ---
 

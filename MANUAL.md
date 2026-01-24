@@ -1,14 +1,14 @@
-# TP-7 Field Recorder - Accessible Manual
+# TP-7 Field Recorder - Manual (text version)
 
-**Document Version:** 1.1.11
 **Last Updated:** 2026-01-24
 **Firmware Version:** 1.1.11
 
----
+**Sources:**
+- Official Manual: https://teenage.engineering/guides/tp-7
+- Firmware Downloads: https://teenage.engineering/downloads/tp-7
 
-This document provides text descriptions of all manual pages for the Teenage Engineering TP-7 field recorder, designed to be fully accessible for blind and visually impaired users.
-
-See [FIRMWARE_CHANGELOG.md](FIRMWARE_CHANGELOG.md) for firmware version history.
+**Related Documents:**
+- [FIRMWARE_CHANGELOG.md](FIRMWARE_CHANGELOG.md) - Firmware version history
 
 ---
 
@@ -1696,7 +1696,3 @@ MODIFICATIONS NOT EXPRESSLY APPROVED BY TEENAGE ENGINEERING COULD VOID THE USER'
 - 64 - 127 = on
 
 ---
-
-*End of TP-7 Accessible Manual*
-
-*This document was generated to provide full accessibility for blind and visually impaired users. All visual elements have been described in text form.*
