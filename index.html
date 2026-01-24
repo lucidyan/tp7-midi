@@ -191,23 +191,35 @@
         /* Transport Controls */
         .transport-buttons {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
             margin-bottom: 20px;
+            justify-content: center;
         }
 
         .transport-btn {
-            min-width: 70px;
-            padding: 12px 16px;
-            font-size: 0.9rem;
+            width: 72px;
+            height: 72px;
+            padding: 8px;
+            font-size: 0.75rem;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             gap: 4px;
+            border-radius: 12px;
         }
 
         .transport-btn .icon {
-            font-size: 1.3rem;
+            font-size: 1.6rem;
+            line-height: 1;
+        }
+
+        .transport-btn .label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            opacity: 0.8;
         }
 
         .transport-btn.active {
@@ -216,8 +228,20 @@
             color: white;
         }
 
-        .transport-btn.rec { background: rgba(244, 67, 54, 0.2); border-color: var(--danger); }
-        .transport-btn.rec.active { background: var(--danger); color: white; }
+        .transport-btn.rec {
+            background: rgba(244, 67, 54, 0.15);
+            border-color: var(--danger);
+        }
+        .transport-btn.rec .icon {
+            color: var(--danger);
+        }
+        .transport-btn.rec.active {
+            background: var(--danger);
+            color: white;
+        }
+        .transport-btn.rec.active .icon {
+            color: white;
+        }
 
         /* Speed Slider in Transport */
         .transport-slider-container {
@@ -389,7 +413,7 @@
             color: var(--loop-out);
         }
 
-        /* Channel Strips */
+        /* Channel Strips with Scale */
         .channel-strips {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -415,34 +439,121 @@
             margin-bottom: 10px;
         }
 
-        .channel-strip .volume-slider {
-            height: 100px;
-            width: 6px;
-            margin: 0 auto 10px;
-            position: relative;
-            background: var(--border);
-            border-radius: 3px;
+        .channel-strip .ch-value {
+            font-size: 0.7rem;
+            font-family: 'SF Mono', Monaco, monospace;
+            color: var(--accent);
+            margin-bottom: 5px;
+            height: 1.2em;
         }
 
-        .channel-strip input[type="range"] {
-            width: 100px;
+        .fader-container {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            gap: 4px;
+            height: 120px;
+            margin-bottom: 10px;
+        }
+
+        .fader-scale {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 0.55rem;
+            color: var(--text-dim);
+            text-align: right;
+            padding: 2px 0;
+        }
+
+        .fader-scale span {
+            line-height: 1;
+        }
+
+        .fader-scale .zero-mark {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .fader-track {
+            width: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .fader-track input[type="range"] {
+            width: 120px;
+            height: 8px;
             transform: rotate(-90deg);
-            transform-origin: 50px 50px;
+            transform-origin: 60px 60px;
             position: absolute;
-            left: -47px;
+            left: -56px;
             top: 0;
         }
 
         .channel-strip .mute-btn {
             width: 100%;
             padding: 8px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
         }
 
         .channel-strip .mute-btn.active {
             background: var(--danger);
             border-color: var(--danger);
             color: white;
+        }
+
+        /* Input Gain with Scale */
+        .gain-control {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .gain-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .gain-header label {
+            margin-bottom: 0 !important;
+        }
+
+        .gain-value {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        .gain-slider-container {
+            position: relative;
+        }
+
+        .gain-scale {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+        }
+
+        .gain-scale .center-mark {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .gain-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .gain-buttons button {
+            flex: 1;
+            padding: 6px;
+            font-size: 0.7rem;
         }
 
         /* Pitch Bend */
@@ -462,16 +573,47 @@
         }
 
         /* Cue Section */
-        .cue-header {
+        .cue-controls {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+            padding: 12px;
+            background: var(--bg);
+            border-radius: 6px;
         }
 
-        .cue-header p {
+        .cue-rec-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .cue-rec-toggle .label {
+            font-size: 0.8rem;
             color: var(--text-dim);
-            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .cue-rec-toggle .toggle-group {
+            width: auto;
+        }
+
+        .cue-rec-toggle .toggle-btn {
+            padding: 8px 16px;
+            flex: none;
+        }
+
+        .cue-rec-toggle .toggle-btn.rec-active {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: white;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
 
         .cue-actions {
@@ -480,7 +622,7 @@
         }
 
         .cue-actions button {
-            padding: 6px 12px;
+            padding: 8px 14px;
             font-size: 0.75rem;
         }
 
@@ -637,27 +779,27 @@
                 <div class="transport-buttons">
                     <button class="transport-btn" id="btn-super-rew" data-speed="0" title="Super Fast Rewind">
                         <span class="icon">⏪</span>
-                        <span>Fast REW</span>
+                        <span class="label">Fast</span>
                     </button>
                     <button class="transport-btn" id="btn-rew" data-speed="60" title="Rewind x1">
-                        <span class="icon">◀</span>
-                        <span>REW</span>
+                        <span class="icon">◀️</span>
+                        <span class="label">Rew</span>
                     </button>
                     <button class="transport-btn active" id="btn-stop" data-speed="64" title="Stop">
-                        <span class="icon">⏹</span>
-                        <span>Stop</span>
+                        <span class="icon">⏹️</span>
+                        <span class="label">Stop</span>
                     </button>
                     <button class="transport-btn" id="btn-play" data-speed="68" title="Play x1">
-                        <span class="icon">▶</span>
-                        <span>Play</span>
+                        <span class="icon">▶️</span>
+                        <span class="label">Play</span>
                     </button>
                     <button class="transport-btn" id="btn-super-fwd" data-speed="127" title="Super Fast Forward">
                         <span class="icon">⏩</span>
-                        <span>Fast FWD</span>
+                        <span class="label">Fast</span>
                     </button>
                     <button class="transport-btn rec" id="btn-rec" title="Record">
-                        <span class="icon">⏺</span>
-                        <span>Rec</span>
+                        <span class="icon">⏺️</span>
+                        <span class="label">Rec</span>
                     </button>
                 </div>
 
@@ -668,11 +810,11 @@
                     </label>
                     <div class="slider-with-markers">
                         <div class="slider-markers">
-                            <span data-val="0">0 Fast←</span>
-                            <span data-val="60">60 ←x1</span>
-                            <span data-val="64" class="active">64 Stop</span>
-                            <span data-val="68">68 x1→</span>
-                            <span data-val="127">Fast→ 127</span>
+                            <span data-val="0">⏪ 0</span>
+                            <span data-val="60">◀ 60</span>
+                            <span data-val="64" class="active">⏹ 64</span>
+                            <span data-val="68">68 ▶</span>
+                            <span data-val="127">127 ⏩</span>
                         </div>
                         <input type="range" id="speed-slider" min="0" max="127" value="64">
                     </div>
@@ -696,10 +838,10 @@
 
             <!-- Loop Control -->
             <div class="section">
-                <h2>Loop Control</h2>
+                <h2>Loop Control (CC 17)</h2>
                 <div class="control-grid">
                     <div class="control-group">
-                        <label>Loop Mode (CC 17)</label>
+                        <label>Loop Mode</label>
                         <div class="toggle-group" id="loop-toggle">
                             <button class="toggle-btn" data-loop="0" id="loop-off">Off</button>
                             <button class="toggle-btn" data-loop="1" id="loop-in">In</button>
@@ -707,91 +849,38 @@
                         </div>
                         <div class="loop-status idle" id="loop-status">No loop set</div>
                     </div>
-                    <div class="control-group">
-                        <label>Cue Rec Mode (CC 16)</label>
-                        <div class="toggle-group">
-                            <button class="toggle-btn active" id="cue-rec-off">Off</button>
-                            <button class="toggle-btn" id="cue-rec-on">On</button>
-                        </div>
-                    </div>
                 </div>
             </div>
 
             <!-- Mixer -->
             <div class="section">
                 <h2>Mixer (CC 7 Volume / CC 120 Mute)</h2>
-                <div class="channel-strips">
-                    <div class="channel-strip" data-channel="1">
-                        <div class="ch-label">CH 1</div>
-                        <div class="volume-slider">
-                            <input type="range" min="0" max="127" value="100" class="vol-slider">
-                        </div>
-                        <button class="mute-btn">Mute</button>
-                    </div>
-                    <div class="channel-strip" data-channel="2">
-                        <div class="ch-label">CH 2</div>
-                        <div class="volume-slider">
-                            <input type="range" min="0" max="127" value="100" class="vol-slider">
-                        </div>
-                        <button class="mute-btn">Mute</button>
-                    </div>
-                    <div class="channel-strip" data-channel="3">
-                        <div class="ch-label">CH 3</div>
-                        <div class="volume-slider">
-                            <input type="range" min="0" max="127" value="100" class="vol-slider">
-                        </div>
-                        <button class="mute-btn">Mute</button>
-                    </div>
-                    <div class="channel-strip" data-channel="4">
-                        <div class="ch-label">CH 4</div>
-                        <div class="volume-slider">
-                            <input type="range" min="0" max="127" value="100" class="vol-slider">
-                        </div>
-                        <button class="mute-btn">Mute</button>
-                    </div>
-                    <div class="channel-strip" data-channel="5">
-                        <div class="ch-label">CH 5</div>
-                        <div class="volume-slider">
-                            <input type="range" min="0" max="127" value="100" class="vol-slider">
-                        </div>
-                        <button class="mute-btn">Mute</button>
-                    </div>
-                    <div class="channel-strip" data-channel="6">
-                        <div class="ch-label">CH 6</div>
-                        <div class="volume-slider">
-                            <input type="range" min="0" max="127" value="100" class="vol-slider">
-                        </div>
-                        <button class="mute-btn">Mute</button>
-                    </div>
+                <div class="channel-strips" id="channel-strips">
+                    <!-- Generated by JS -->
                 </div>
             </div>
 
             <!-- Input Gain -->
             <div class="section">
                 <h2>Input Gain (CC 9)</h2>
-                <div class="control-grid">
-                    <div class="control-group">
-                        <label>Input 1: <span class="gain-val">64</span></label>
-                        <input type="range" class="gain-slider" data-input="1" min="0" max="127" value="64">
-                    </div>
-                    <div class="control-group">
-                        <label>Input 2: <span class="gain-val">64</span></label>
-                        <input type="range" class="gain-slider" data-input="2" min="0" max="127" value="64">
-                    </div>
-                    <div class="control-group">
-                        <label>Input 3: <span class="gain-val">64</span></label>
-                        <input type="range" class="gain-slider" data-input="3" min="0" max="127" value="64">
-                    </div>
+                <div class="control-grid" id="gain-controls">
+                    <!-- Generated by JS -->
                 </div>
             </div>
 
             <!-- Cue Markers -->
             <div class="section">
                 <h2>Cue Markers (Note On/Off)</h2>
-                <div class="cue-header">
-                    <p>Enable Cue Rec Mode to record markers. Click to trigger/recall.</p>
+                <div class="cue-controls">
+                    <div class="cue-rec-toggle">
+                        <span class="label">Cue Rec Mode</span>
+                        <div class="toggle-group">
+                            <button class="toggle-btn active" id="cue-rec-off">Off</button>
+                            <button class="toggle-btn" id="cue-rec-on">⏺ Rec</button>
+                        </div>
+                    </div>
                     <div class="cue-actions">
-                        <button id="cue-clear-all">Clear All</button>
+                        <button id="cue-clear-all">🗑️ Clear All</button>
                     </div>
                 </div>
                 <div class="cue-grid" id="cue-grid">
@@ -822,11 +911,11 @@
 
         // State
         const state = {
-            transport: 64,       // Current CC18 value (64 = stopped)
+            transport: 64,
             recording: false,
-            loopState: 'off',    // 'off', 'in', 'out'
+            loopState: 'off',
             cueRecMode: false,
-            cues: new Set(),     // Set of recorded cue note numbers
+            cues: new Set(),
         };
 
         // Check Web MIDI support
@@ -890,47 +979,43 @@
         function updateTransportState(value) {
             state.transport = value;
 
-            // Update slider
             document.getElementById('speed-slider').value = value;
             document.getElementById('speed-value').textContent = value;
 
-            // Update markers
             document.querySelectorAll('.slider-markers span').forEach(m => {
                 m.classList.toggle('active', parseInt(m.dataset.val) === value);
             });
 
-            // Update transport buttons
             document.querySelectorAll('.transport-btn[data-speed]').forEach(btn => {
                 btn.classList.toggle('active', parseInt(btn.dataset.speed) === value);
             });
 
-            // Update state indicator
             const stateEl = document.getElementById('transport-state');
             const descEl = document.getElementById('speed-description');
             let stateName, stateClass;
 
             if (state.recording) {
-                stateName = 'Recording';
+                stateName = '⏺ Recording';
                 stateClass = 'recording';
             } else if (value === 64) {
-                stateName = 'Stopped';
+                stateName = '⏹ Stopped';
                 stateClass = 'stopped';
             } else if (value < 64) {
                 if (value === 0) {
-                    stateName = 'Fast Rewind';
+                    stateName = '⏪ Fast Rewind';
                 } else if (value === 60) {
-                    stateName = 'Rewind x1';
+                    stateName = '◀ Rewind';
                 } else {
-                    stateName = `Rewind (${value})`;
+                    stateName = `◀ Rewind (${value})`;
                 }
                 stateClass = 'rewinding';
             } else {
                 if (value === 127) {
-                    stateName = 'Fast Forward';
+                    stateName = '⏩ Fast Forward';
                 } else if (value === 68) {
-                    stateName = 'Playing x1';
+                    stateName = '▶ Playing';
                 } else {
-                    stateName = `Forward (${value})`;
+                    stateName = `▶ Forward (${value})`;
                 }
                 stateClass = value === 68 ? 'playing' : 'forwarding';
             }
@@ -957,7 +1042,6 @@
             const outBtn = document.getElementById('loop-out');
             const statusEl = document.getElementById('loop-status');
 
-            // Reset all buttons
             offBtn.className = 'toggle-btn';
             inBtn.className = 'toggle-btn';
             outBtn.className = 'toggle-btn';
@@ -971,34 +1055,144 @@
                 case 'in':
                     inBtn.classList.add('loop-in');
                     statusEl.className = 'loop-status in-set';
-                    statusEl.textContent = 'Loop IN set - click OUT to complete';
+                    statusEl.textContent = '🔶 Loop IN set - click OUT to complete';
                     break;
                 case 'out':
                     inBtn.classList.add('loop-in');
                     outBtn.classList.add('loop-out');
                     statusEl.className = 'loop-status active';
-                    statusEl.textContent = 'Loop active';
+                    statusEl.textContent = '🔁 Loop active';
                     break;
             }
         }
 
         function handleLoopClick(mode) {
             if (mode === 0) {
-                // Off - always reset
                 sendCC(17, 0);
                 updateLoopState('off');
             } else if (mode === 1) {
-                // In
                 sendCC(17, 1);
                 updateLoopState('in');
             } else if (mode === 2) {
-                // Out - only works if In was set
                 if (state.loopState === 'in') {
                     sendCC(17, 2);
                     updateLoopState('out');
                 } else {
                     log('Set Loop IN first');
                 }
+            }
+        }
+
+        // =====================================================================
+        // Channel Strips (Mixer)
+        // =====================================================================
+
+        function createChannelStrips() {
+            const container = document.getElementById('channel-strips');
+            container.innerHTML = '';
+
+            for (let ch = 1; ch <= 6; ch++) {
+                const strip = document.createElement('div');
+                strip.className = 'channel-strip';
+                strip.dataset.channel = ch;
+                strip.innerHTML = `
+                    <div class="ch-label">CH ${ch}</div>
+                    <div class="ch-value">100</div>
+                    <div class="fader-container">
+                        <div class="fader-scale">
+                            <span>+10</span>
+                            <span class="zero-mark">0</span>
+                            <span>-10</span>
+                            <span>-20</span>
+                            <span>-∞</span>
+                        </div>
+                        <div class="fader-track">
+                            <input type="range" class="vol-slider" min="0" max="127" value="100">
+                        </div>
+                    </div>
+                    <button class="mute-btn">🔇 Mute</button>
+                `;
+                container.appendChild(strip);
+
+                const slider = strip.querySelector('.vol-slider');
+                const valueDisplay = strip.querySelector('.ch-value');
+                const muteBtn = strip.querySelector('.mute-btn');
+
+                slider.addEventListener('input', () => {
+                    valueDisplay.textContent = slider.value;
+                    sendCC(7, parseInt(slider.value), ch);
+                });
+
+                muteBtn.addEventListener('click', () => {
+                    muteBtn.classList.toggle('active');
+                    const muted = muteBtn.classList.contains('active');
+                    muteBtn.textContent = muted ? '🔊 Unmute' : '🔇 Mute';
+                    sendCC(120, muted ? 127 : 0, ch);
+                });
+            }
+        }
+
+        // =====================================================================
+        // Input Gain Controls
+        // =====================================================================
+
+        function createGainControls() {
+            const container = document.getElementById('gain-controls');
+            container.innerHTML = '';
+
+            for (let input = 1; input <= 3; input++) {
+                const group = document.createElement('div');
+                group.className = 'control-group';
+                group.innerHTML = `
+                    <div class="gain-control">
+                        <div class="gain-header">
+                            <label>Input ${input}</label>
+                            <span class="gain-value">64</span>
+                        </div>
+                        <div class="gain-slider-container">
+                            <div class="gain-scale">
+                                <span>0</span>
+                                <span>32</span>
+                                <span class="center-mark">● 64</span>
+                                <span>96</span>
+                                <span>127</span>
+                            </div>
+                            <input type="range" class="gain-slider" data-input="${input}" min="0" max="127" value="64">
+                        </div>
+                        <div class="gain-buttons">
+                            <button class="gain-min" data-input="${input}">Min</button>
+                            <button class="gain-center" data-input="${input}">Center</button>
+                            <button class="gain-max" data-input="${input}">Max</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(group);
+
+                const slider = group.querySelector('.gain-slider');
+                const valueDisplay = group.querySelector('.gain-value');
+
+                slider.addEventListener('input', () => {
+                    valueDisplay.textContent = slider.value;
+                    sendCC(9, parseInt(slider.value), input);
+                });
+
+                group.querySelector('.gain-min').addEventListener('click', () => {
+                    slider.value = 0;
+                    valueDisplay.textContent = '0';
+                    sendCC(9, 0, input);
+                });
+
+                group.querySelector('.gain-center').addEventListener('click', () => {
+                    slider.value = 64;
+                    valueDisplay.textContent = '64';
+                    sendCC(9, 64, input);
+                });
+
+                group.querySelector('.gain-max').addEventListener('click', () => {
+                    slider.value = 127;
+                    valueDisplay.textContent = '127';
+                    sendCC(9, 127, input);
+                });
             }
         }
 
@@ -1028,7 +1222,6 @@
         function handleCueClick(note, btn) {
             sendNote(note, 100, 1);
 
-            // If in cue rec mode, mark as set
             if (state.cueRecMode) {
                 state.cues.add(note);
                 btn.classList.add('set');
@@ -1037,10 +1230,8 @@
 
         function clearAllCues() {
             state.cues.clear();
-            document.querySelectorAll('.cue-btn').forEach(btn => {
-                btn.classList.remove('set');
-            });
-            log('All cue markers cleared (local state only)');
+            createCueButtons(); // Recreate all buttons to clear visual state
+            log('All cue markers cleared');
         }
 
         // =====================================================================
@@ -1108,6 +1299,8 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             initMIDI();
+            createChannelStrips();
+            createGainControls();
             createCueButtons();
 
             // Connection buttons
@@ -1136,7 +1329,7 @@
                 setTransport(parseInt(speedSlider.value));
             });
 
-            // Speed slider markers (clickable presets)
+            // Speed slider markers
             document.querySelectorAll('.slider-markers span').forEach(marker => {
                 marker.addEventListener('click', () => {
                     setTransport(parseInt(marker.dataset.val));
@@ -1162,49 +1355,29 @@
             document.getElementById('loop-out').addEventListener('click', () => handleLoopClick(2));
 
             // Cue rec mode
-            document.getElementById('cue-rec-off').addEventListener('click', () => {
+            const cueRecOff = document.getElementById('cue-rec-off');
+            const cueRecOn = document.getElementById('cue-rec-on');
+
+            cueRecOff.addEventListener('click', () => {
                 state.cueRecMode = false;
-                document.getElementById('cue-rec-off').classList.add('active');
-                document.getElementById('cue-rec-on').classList.remove('active');
+                cueRecOff.classList.add('active');
+                cueRecOn.classList.remove('active', 'rec-active');
                 sendCC(16, 0);
             });
-            document.getElementById('cue-rec-on').addEventListener('click', () => {
+
+            cueRecOn.addEventListener('click', () => {
                 state.cueRecMode = true;
-                document.getElementById('cue-rec-on').classList.add('active');
-                document.getElementById('cue-rec-off').classList.remove('active');
+                cueRecOn.classList.add('active', 'rec-active');
+                cueRecOff.classList.remove('active');
                 sendCC(16, 127);
             });
 
-            // Clear cues
-            document.getElementById('cue-clear-all').addEventListener('click', clearAllCues);
-
-            // Channel strips
-            document.querySelectorAll('.channel-strip').forEach(strip => {
-                const channel = parseInt(strip.dataset.channel);
-                const volSlider = strip.querySelector('.vol-slider');
-                const muteBtn = strip.querySelector('.mute-btn');
-
-                volSlider.addEventListener('input', () => {
-                    sendCC(7, parseInt(volSlider.value), channel);
-                });
-
-                muteBtn.addEventListener('click', () => {
-                    muteBtn.classList.toggle('active');
-                    sendCC(120, muteBtn.classList.contains('active') ? 127 : 0, channel);
-                });
+            // Clear cues - FIX: properly bind the click handler
+            document.getElementById('cue-clear-all').addEventListener('click', () => {
+                clearAllCues();
             });
 
-            // Input gain sliders
-            document.querySelectorAll('.gain-slider').forEach(slider => {
-                const input = parseInt(slider.dataset.input);
-                const label = slider.parentElement.querySelector('.gain-val');
-                slider.addEventListener('input', () => {
-                    label.textContent = slider.value;
-                    sendCC(9, parseInt(slider.value), input);
-                });
-            });
-
-            // Initialize transport state display
+            // Initialize states
             updateTransportState(64);
             updateLoopState('off');
         });
