@@ -36,12 +36,20 @@ CC 16 (Cue Rec Mode):
       Runs playback with current speed enabled (speed controlled by pitch bend)
       If forward is enabled, it's added to playback speed like delta from center 64
 
-CC 18 (FFwd/Rew):
+CC 18 (FFwd/Rew) - Normal Mode:
     - 64 = Stop
     - 68 = Play forward x1
     - 60 = Play reverse x1
     - 0 = Super fast reverse
     - 127 = Super fast forward
+
+CC 18 (FFwd/Rew) - Cue Playback Mode (after triggering cue):
+    WARNING: Behavior changes completely when playing from a cue!
+    - NO STOP POSITION - center point shifts
+    - 0-60 = Reverse speed (60 = slowest reverse, like -1x)
+    - 61-127 = Forward speed (61 = slowest forward, like +1x)
+    - Cannot stop playback via CC18 in this mode
+    - Use pitch bend for speed control or trigger new cue
 """
 
 import time

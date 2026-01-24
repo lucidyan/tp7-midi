@@ -595,6 +595,34 @@
             font-size: 1rem;
         }
 
+        /* Cue Play Mode Warning */
+        .cue-play-warning {
+            background: rgba(156, 39, 176, 0.15);
+            border: 1px solid var(--cue-set);
+            border-radius: 6px;
+            padding: 12px 14px;
+            margin-bottom: 15px;
+            font-size: 0.8rem;
+            color: var(--cue-set);
+            display: none;
+        }
+
+        .cue-play-warning.visible {
+            display: block;
+        }
+
+        .cue-play-warning strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .cue-play-warning code {
+            background: rgba(156, 39, 176, 0.2);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
         /* Cue Section */
         .cue-controls {
             display: flex;
@@ -827,6 +855,12 @@
                     Transport (CC 18)
                     <span id="transport-state" class="transport-state stopped">Stopped</span>
                 </h2>
+                <div id="cue-play-warning" class="cue-play-warning">
+                    <strong>⚠️ Cue Playback Mode Active</strong>
+                    In cue playback mode, CC18 becomes <em>relative speed</em> with NO stop position!
+                    <code>0-60</code> = reverse (60 slowest), <code>61-127</code> = forward (61 slowest).
+                    Center point shifts - use pitch bend or trigger new cue to control.
+                </div>
                 <div class="transport-buttons">
                     <button class="transport-btn" id="btn-super-rew" data-speed="0" title="Super Fast Rewind">
                         <span class="icon">⏪</span>
@@ -1089,6 +1123,12 @@
             stateEl.textContent = stateName;
             stateEl.className = 'transport-state ' + stateClass;
             descEl.textContent = `(${stateName})`;
+
+            // Show/hide cue play warning
+            const cueWarning = document.getElementById('cue-play-warning');
+            if (cueWarning) {
+                cueWarning.classList.toggle('visible', state.cuePlayActive);
+            }
         }
 
         function setTransport(value) {

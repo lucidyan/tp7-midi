@@ -969,6 +969,22 @@ SWEDEN
 - 0 - 63 = Off
 - 64 - 127 = On
 
+### CC 18 Cue Playback Mode (Experimental Finding)
+
+**WARNING:** When playing from a cue marker (Note On/Off), CC 18 behavior changes completely:
+
+| Normal Mode | Cue Playback Mode |
+|-------------|-------------------|
+| 64 = Stop | NO STOP - center shifts |
+| 0-63 = Reverse | 0-60 = Reverse (60 = slowest) |
+| 65-127 = Forward | 61-127 = Forward (61 = slowest) |
+
+In cue playback mode:
+- There is no stop position
+- Speed becomes relative, not absolute
+- Use pitch bend for fine speed control
+- Trigger another cue to change playback point
+
 ---
 
 For warranty, safety instructions and full regulatory information, visit:
