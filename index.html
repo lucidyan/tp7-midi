@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TP-7 MIDI Controller</title>
     <style>
         :root {
@@ -52,23 +52,30 @@
             color: var(--warning);
         }
 
-        /* Scale with Ticks */
+        /* Scale with Ticks - Aligned to slider */
         .scale-with-ticks {
             position: relative;
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.65rem;
+            height: 28px;
+            font-size: 0.6rem;
             color: var(--text-dim);
-            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+        @media (max-width: 500px) {
+            .scale-with-ticks {
+                font-size: 0.55rem;
+            }
         }
 
         .scale-with-ticks span {
-            position: relative;
+            position: absolute;
+            transform: translateX(-50%);
             text-align: center;
             cursor: pointer;
             padding: 2px 4px;
             border-radius: 3px;
             transition: all 0.2s;
+            white-space: nowrap;
         }
 
         .scale-with-ticks span::after {
@@ -95,6 +102,14 @@
         .scale-with-ticks span.center-mark::after {
             background: var(--accent);
             height: 6px;
+        }
+
+        /* Edge labels need adjusted transform to not overflow */
+        .scale-with-ticks span:first-child {
+            transform: translateX(0);
+        }
+        .scale-with-ticks span:last-child {
+            transform: translateX(-100%);
         }
 
         * {
@@ -146,6 +161,47 @@
             padding: 20px;
             margin-bottom: 20px;
         }
+
+        .connection-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .conn-tab {
+            padding: 8px 20px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text-dim);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .conn-tab:hover {
+            border-color: var(--accent);
+            color: var(--text);
+        }
+
+        .conn-tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        #ble-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            background: var(--bg);
+        }
+
+        #ble-status.connected { background: rgba(76, 175, 80, 0.2); color: var(--success); }
+        #ble-status.disconnected { background: rgba(244, 67, 54, 0.2); color: var(--danger); }
+        #ble-status.connecting { background: rgba(255, 152, 0, 0.2); color: var(--warning); }
 
         .connection-row {
             display: flex;
@@ -222,6 +278,15 @@
             letter-spacing: 0.05em;
             display: flex;
             align-items: center;
+            gap: 8px;
+        }
+
+        .section h2 small {
+            font-size: 0.65rem;
+            font-weight: 400;
+            color: var(--text-dim);
+            text-transform: none;
+            letter-spacing: 0;
             gap: 10px;
         }
 
@@ -271,15 +336,17 @@
         /* Transport Controls */
         .transport-buttons {
             display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+            gap: 2%;
             margin-bottom: 20px;
             justify-content: center;
+            width: 100%;
         }
 
         .transport-btn {
-            width: 72px;
-            height: 72px;
+            width: 18%;
+            max-width: 70px;
+            aspect-ratio: 1;
+            flex-shrink: 0;
             padding: 8px;
             font-size: 0.75rem;
             display: flex;
@@ -291,7 +358,7 @@
         }
 
         .transport-btn .icon {
-            font-size: 1.6rem;
+            font-size: 1.3rem;
             line-height: 1;
         }
 
@@ -344,35 +411,6 @@
 
         .slider-with-markers {
             position: relative;
-            padding-top: 20px;
-        }
-
-        .slider-markers {
-            display: flex;
-            justify-content: space-between;
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            font-size: 0.65rem;
-            color: var(--text-dim);
-        }
-
-        .slider-markers span {
-            cursor: pointer;
-            padding: 2px 4px;
-            border-radius: 3px;
-            transition: all 0.2s;
-        }
-
-        .slider-markers span:hover {
-            background: var(--surface-hover);
-            color: var(--text);
-        }
-
-        .slider-markers span.active {
-            color: var(--accent);
-            font-weight: 600;
         }
 
         /* Control Grid */
@@ -407,19 +445,22 @@
         /* Sliders */
         input[type="range"] {
             width: 100%;
-            height: 6px;
+            height: 8px;
             -webkit-appearance: none;
             appearance: none;
             background: var(--border);
-            border-radius: 3px;
+            border-radius: 4px;
             outline: none;
+            touch-action: none;
+            padding: 10px 0;
+            margin: 0;
         }
 
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             background: var(--accent);
             cursor: pointer;
@@ -427,12 +468,12 @@
         }
 
         input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
+            transform: scale(1.15);
         }
 
         input[type="range"]::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             background: var(--accent);
             cursor: pointer;
@@ -538,9 +579,9 @@
 
         .fader-container {
             display: flex;
-            align-items: stretch;
+            align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 2px;
             height: 120px;
             margin-bottom: 10px;
         }
@@ -549,10 +590,11 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            font-size: 0.55rem;
+            font-size: 0.5rem;
             color: var(--text-dim);
             text-align: right;
             padding: 2px 0;
+            height: 120px;
         }
 
         .fader-scale span {
@@ -565,20 +607,24 @@
         }
 
         .fader-track {
-            width: 8px;
+            width: 24px;
+            height: 120px;
             background: var(--border);
             border-radius: 4px;
             position: relative;
+            touch-action: none;
         }
 
         .fader-track input[type="range"] {
             width: 120px;
-            height: 8px;
+            height: 24px;
             transform: rotate(-90deg);
-            transform-origin: 60px 60px;
+            transform-origin: 12px 12px;
             position: absolute;
-            left: -56px;
-            top: 0;
+            left: 0;
+            top: 96px;
+            touch-action: none;
+            background: transparent;
         }
 
         .channel-strip .mute-btn {
@@ -672,29 +718,7 @@
             gap: 8px;
         }
 
-        .pitch-scale {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.7rem;
-            color: var(--text-dim);
-        }
-
-        .pitch-scale span {
-            cursor: pointer;
-            padding: 2px 6px;
-            border-radius: 3px;
-            transition: all 0.2s;
-        }
-
-        .pitch-scale span:hover {
-            background: var(--surface-hover);
-            color: var(--text);
-        }
-
-        .pitch-scale .center-mark {
-            color: var(--accent);
-            font-weight: 600;
-        }
+        /* pitch-scale uses scale-with-ticks styles */
 
         .pitch-bend-slider {
             width: 100%;
@@ -751,10 +775,22 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
             margin-bottom: 15px;
             padding: 12px;
             background: var(--bg);
             border-radius: 6px;
+        }
+
+        @media (max-width: 500px) {
+            .cue-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .cue-rec-toggle {
+                justify-content: space-between;
+            }
         }
 
         .cue-count-control {
@@ -762,6 +798,7 @@
             align-items: center;
             gap: 8px;
             margin-bottom: 15px;
+            flex-wrap: wrap;
         }
 
         .cue-count-control label {
@@ -977,20 +1014,27 @@
         }
 
         /* Hotkey Popup */
-        .hotkey-toggle {
-            position: absolute;
-            top: 20px;
-            right: 130px;
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .hotkey-toggle, .edit-toggle {
             padding: 8px 12px;
-            font-size: 1rem;
+            font-size: 0.8rem;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 6px;
             cursor: pointer;
+            color: var(--text-dim);
+            transition: all 0.2s;
         }
 
-        .hotkey-toggle:hover {
+        .hotkey-toggle:hover, .edit-toggle:hover {
             border-color: var(--accent);
+            color: var(--text);
         }
 
         .hotkey-popup {
@@ -1064,33 +1108,87 @@
         }
 
         /* Edit Layout Mode */
-        .edit-toggle {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            padding: 8px 16px;
-            font-size: 0.8rem;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--text-dim);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .edit-toggle:hover {
-            border-color: var(--accent);
-            color: var(--text);
-        }
-
         .edit-toggle.active {
             background: var(--accent);
             border-color: var(--accent);
             color: white;
         }
 
-        header {
-            position: relative;
+        .manual-input {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 0.8rem;
+        }
+
+        .manual-input input[type="number"] {
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 0.8rem;
+        }
+
+        .manual-input button {
+            padding: 6px 12px;
+            font-size: 0.75rem;
+        }
+
+        /* Debug Panel */
+        .debug-panel {
+            background: var(--bg);
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .debug-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .debug-row label {
+            color: var(--text-dim);
+            min-width: 150px;
+        }
+
+        .debug-row span {
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .debug-row.calculated {
+            background: var(--surface);
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .debug-row.calculated label {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        #debug-final-speed {
+            font-size: 1.5rem;
+            color: var(--accent);
+        }
+
+        .debug-sweep {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+
+        #sweep-status {
+            color: var(--warning);
+            font-size: 0.8rem;
         }
 
         .section.draggable {
@@ -1133,8 +1231,11 @@
         <header>
             <h1><span>TP-7</span> MIDI Controller</h1>
             <p class="subtitle">Web MIDI interface for Teenage Engineering TP-7</p>
-            <button id="hotkey-btn" class="hotkey-toggle" title="Keyboard Shortcuts">⌨️</button>
-            <button id="edit-layout-toggle" class="edit-toggle">Edit Layout</button>
+            <div class="header-buttons">
+                <button id="hotkey-btn" class="hotkey-toggle" title="Keyboard Shortcuts">⌨️ Keys</button>
+                <button id="edit-layout-toggle" class="edit-toggle">✏️ Layout</button>
+                <button id="clear-state-btn" class="hotkey-toggle" title="Clear saved state">🗑️ Reset</button>
+            </div>
         </header>
 
         <!-- Hotkey Popup -->
@@ -1165,10 +1266,8 @@
 
         <div id="midi-not-supported" class="not-supported" style="display: none;">
             <h2>Web MIDI Not Supported</h2>
-            <p>Your browser doesn't support the Web MIDI API.</p>
-            <p>Please use <a href="https://www.google.com/chrome/" target="_blank">Chrome</a>,
-               <a href="https://www.microsoft.com/edge" target="_blank">Edge</a>, or
-               <a href="https://www.opera.com/" target="_blank">Opera</a>.</p>
+            <p>Your browser doesn't support USB MIDI. Try <strong>Bluetooth</strong> tab instead!</p>
+            <p><strong>iOS users:</strong> Use <a href="https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055" target="_blank" style="color: var(--accent);">Bluefy Browser</a> for Bluetooth MIDI support.</p>
         </div>
 
         <div id="app">
@@ -1180,7 +1279,12 @@
 
             <!-- Connection -->
             <div id="section-connection" class="section">
-                <div class="connection-row">
+                <h2>Connection</h2>
+                <div class="connection-tabs">
+                    <button class="conn-tab active" data-tab="usb">USB-C</button>
+                    <button class="conn-tab" data-tab="ble">Bluetooth</button>
+                </div>
+                <div class="connection-row" id="usb-connection">
                     <div id="status" class="disconnected">
                         <span class="status-dot"></span>
                         <span id="status-text">Disconnected</span>
@@ -1191,14 +1295,34 @@
                     <button id="connect-btn" class="primary">Connect</button>
                     <button id="refresh-btn">Refresh</button>
                 </div>
+                <div class="connection-row" id="ble-connection" style="display: none;">
+                    <div id="ble-status" class="disconnected">
+                        <span class="status-dot"></span>
+                        <span id="ble-status-text">Disconnected</span>
+                    </div>
+                    <button id="ble-connect-btn" class="primary">Connect via Bluetooth</button>
+                    <button id="ble-disconnect-btn" style="display: none;">Disconnect</button>
+                </div>
+                <div id="ble-not-supported" class="warning-box" style="display: none;">
+                    <span class="icon">⚠️</span>
+                    <span>
+                        <strong>Web Bluetooth not supported in this browser.</strong><br>
+                        <strong>Android/Desktop:</strong> Use Chrome or Edge.<br>
+                        <strong>iOS:</strong> Download <a href="https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055" target="_blank" style="color: var(--accent);">Bluefy Browser</a> from App Store - it's the ONLY way to use Web Bluetooth on iOS!
+                    </span>
+                </div>
             </div>
 
             <!-- Cue Markers -->
             <div id="section-cue" class="section">
-                <h2>Cue Markers (Note On/Off)</h2>
+                <h2>Cue Markers <small>Note On/Off</small></h2>
                 <div class="warning-box">
                     <span class="icon">⚠️</span>
                     <span><strong>Required:</strong> Set MIDI-CUE in TP-7 settings for cue markers to work!</span>
+                </div>
+                <div class="info-box">
+                    <span class="icon">ℹ️</span>
+                    <span><strong>No MIDI way to clear cues!</strong> To clear cue markers on TP-7, you must change the track manually on the device. "Clear UI" only clears the local UI state.</span>
                 </div>
                 <div class="cue-controls">
                     <div class="cue-rec-toggle">
@@ -1224,7 +1348,7 @@
 
             <!-- Loop Control -->
             <div id="section-loop" class="section">
-                <h2>Loop Control (CC 17)</h2>
+                <h2>Loop Control <small>CC 17</small></h2>
                 <div class="control-grid">
                     <div class="control-group">
                         <label>Loop Mode</label>
@@ -1240,7 +1364,7 @@
 
             <!-- Playback Speed (Pitch Bend) -->
             <div id="section-pitch" class="section">
-                <h2>Playback Speed Modifier (Pitch Bend)</h2>
+                <h2>Playback Speed <small>Pitch Bend</small></h2>
                 <div class="info-box">
                     <span class="icon">ℹ️</span>
                     <span><strong>1 of 3 speed controls.</strong> Internal multiplier via MIDI. Only during playback. NOT visible on TP-7. (Other 2: SPD on screen - no MIDI access!, Rocker below)</span>
@@ -1253,13 +1377,13 @@
                             <span class="speed-pitch" id="pitch-value">(pitch: 0)</span>
                         </div>
                         <div class="pitch-bend-container">
-                            <div class="scale-with-ticks pitch-scale">
-                                <span data-pitch="-8192">x0.25</span>
-                                <span data-pitch="-5461">x0.5</span>
-                                <span data-pitch="-2731">x0.75</span>
-                                <span data-pitch="0" class="center-mark">x1</span>
-                                <span data-pitch="4096">x1.5</span>
-                                <span data-pitch="8191">x2</span>
+                            <div class="scale-with-ticks pitch-scale" id="pitch-scale">
+                                <span data-pitch="-8192" style="left: 0%">x0.25</span>
+                                <span data-pitch="-5461" style="left: 16.7%">x0.5</span>
+                                <span data-pitch="-2731" style="left: 33.3%">x0.75</span>
+                                <span data-pitch="0" style="left: 50%" class="center-mark">x1</span>
+                                <span data-pitch="4096" style="left: 75%">x1.5</span>
+                                <span data-pitch="8191" style="left: 100%">x2</span>
                             </div>
                             <input type="range" id="pitch-bend" min="-8192" max="8191" value="0" class="pitch-bend-slider">
                         </div>
@@ -1270,13 +1394,18 @@
                             <button class="pitch-preset" data-pitch="4096">x1.5</button>
                             <button class="pitch-preset" data-pitch="8191">x2</button>
                         </div>
+                        <div class="manual-input">
+                            <label>Manual pitch:</label>
+                            <input type="number" id="pitch-manual" min="-8192" max="8191" value="0" style="width: 80px;">
+                            <button id="pitch-manual-apply">Set</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Mixer -->
             <div id="section-mixer" class="section">
-                <h2>Mixer (CC 7 Volume / CC 120 Mute)</h2>
+                <h2>Mixer <small>CC 7 / CC 120</small></h2>
                 <div class="channel-strips" id="channel-strips">
                     <!-- Generated by JS -->
                 </div>
@@ -1285,7 +1414,7 @@
             <!-- Rocker -->
             <div id="section-rocker" class="section">
                 <h2>
-                    Rocker (CC 18)
+                    Rocker <small>CC 18</small>
                     <span id="transport-state" class="transport-state stopped">Stopped</span>
                 </h2>
                 <div class="info-box">
@@ -1323,10 +1452,6 @@
                         <span class="icon">⏩</span>
                         <span class="label">Fast</span>
                     </button>
-                    <button class="transport-btn rec" id="btn-rec" title="Record">
-                        <span class="icon">⏺️</span>
-                        <span class="label">Rec</span>
-                    </button>
                 </div>
 
                 <!-- Speed Slider -->
@@ -1334,28 +1459,68 @@
                     <label>Rocker Speed</label>
                     <div class="speed-display">
                         <span class="speed-multiplier" id="rocker-state">0x</span>
-                        <span class="speed-pitch" id="speed-value">(CC18: 64)</span>
+                        <span class="speed-pitch" id="speed-value">(MIDI value: 64)</span>
                     </div>
                     <div class="slider-with-markers">
-                        <div class="scale-with-ticks">
-                            <span data-val="0">-16x</span>
-                            <span data-val="32">-8x</span>
-                            <span data-val="60">-1x</span>
-                            <span data-val="64" class="center-mark">0x</span>
-                            <span data-val="68">+1x</span>
-                            <span data-val="96">+8x</span>
-                            <span data-val="127">+16x</span>
+                        <div class="scale-with-ticks" id="rocker-scale">
+                            <span data-val="0" style="left: 0%">REW</span>
+                            <span data-val="64" style="left: 50.4%" class="center-mark">STOP</span>
+                            <span data-val="127" style="left: 100%">FWD</span>
                         </div>
                         <input type="range" id="speed-slider" min="0" max="127" value="64">
+                    </div>
+                    <div class="manual-input">
+                        <label>Manual CC18:</label>
+                        <input type="number" id="rocker-manual" min="0" max="127" value="64" style="width: 60px;">
+                        <button id="rocker-manual-apply">Set</button>
                     </div>
                 </div>
             </div>
 
             <!-- Input Gain -->
             <div id="section-gain" class="section">
-                <h2>Input Gain (CC 9)</h2>
+                <h2>Input Gain <small>CC 9</small></h2>
                 <div class="control-grid" id="gain-controls">
                     <!-- Generated by JS -->
+                </div>
+            </div>
+
+            <!-- Speed Debug -->
+            <div id="section-debug" class="section">
+                <h2>Speed Debug <small>Find stop point</small></h2>
+                <div class="debug-panel">
+                    <div class="debug-row">
+                        <label>Current Rocker (CC18):</label>
+                        <span id="debug-rocker">64</span>
+                        <span id="debug-rocker-mult">(0x)</span>
+                    </div>
+                    <div class="debug-row">
+                        <label>Current Pitch:</label>
+                        <span id="debug-pitch">0</span>
+                        <span id="debug-pitch-mult">(x1.00)</span>
+                    </div>
+                    <div class="debug-row calculated">
+                        <label>Calculated Speed:</label>
+                        <span id="debug-final-speed">0x</span>
+                    </div>
+                    <hr style="border-color: var(--border); margin: 15px 0;">
+                    <div class="debug-row">
+                        <label>Find compensation pitch for rocker -1x (CC18=60):</label>
+                    </div>
+                    <div class="debug-sweep">
+                        <button id="sweep-start">Sweep Pitch (slow)</button>
+                        <button id="sweep-stop">Stop Sweep</button>
+                        <span id="sweep-status"></span>
+                    </div>
+                    <div class="debug-row">
+                        <label>Test pitch:</label>
+                        <input type="number" id="debug-test-pitch" value="703" style="width: 80px;">
+                        <button id="debug-test-apply">Apply with Rocker -1x</button>
+                    </div>
+                    <div class="info-box" style="margin-top: 10px;">
+                        <span class="icon">ℹ️</span>
+                        <span>At rocker -1x (CC18=60), tape should reverse. Finding the pitch that "stops" it means finding where forward pitch cancels reverse rocker. Current best guess: <strong>~703</strong></span>
+                    </div>
                 </div>
             </div>
 
@@ -1374,12 +1539,19 @@
 
     <script>
         // =====================================================================
-        // TP-7 MIDI Controller - Web MIDI Implementation
+        // TP-7 MIDI Controller - Web MIDI + BLE MIDI Implementation
         // =====================================================================
 
         let midiOutput = null;
         let midiInput = null;
         let midiAccess = null;
+
+        // BLE MIDI
+        const BLE_MIDI_SERVICE = '03b80e5a-ede8-4b33-a751-6ce34ec4c700';
+        const BLE_MIDI_CHARACTERISTIC = '7772e5db-3868-4112-a1a9-f2669d106bf3';
+        let bleDevice = null;
+        let bleMidiCharacteristic = null;
+        let connectionType = null; // 'usb' or 'ble'
 
         // State
         const state = {
@@ -1393,41 +1565,63 @@
             lastCuePlayed: null,
         };
 
-        // Check Web MIDI support
+        // Check Web MIDI support (for USB tab)
         if (!navigator.requestMIDIAccess) {
+            // Don't hide app - BLE might still work
             document.getElementById('midi-not-supported').style.display = 'block';
-            document.getElementById('app').style.display = 'none';
+        }
+
+        // Check Web Bluetooth support (for BLE tab)
+        if (!navigator.bluetooth) {
+            document.getElementById('ble-not-supported').style.display = 'block';
         }
 
         // =====================================================================
-        // MIDI Utilities
+        // MIDI Utilities (USB + BLE)
         // =====================================================================
 
+        // Send raw MIDI bytes - works with both USB and BLE
+        function sendMidi(bytes) {
+            if (connectionType === 'ble' && bleMidiCharacteristic) {
+                // BLE MIDI format: header + timestamp + midi bytes
+                const timestamp = Date.now() & 0x1FFF;
+                const header = 0x80 | ((timestamp >> 7) & 0x3F);
+                const timestampLow = 0x80 | (timestamp & 0x7F);
+                const packet = new Uint8Array([header, timestampLow, ...bytes]);
+                bleMidiCharacteristic.writeValueWithoutResponse(packet);
+                return true;
+            } else if (connectionType === 'usb' && midiOutput) {
+                midiOutput.send(bytes);
+                return true;
+            }
+            return false;
+        }
+
         function sendCC(cc, value, channel = 1) {
-            if (!midiOutput) return;
             const status = 0xB0 | (channel - 1);
-            midiOutput.send([status, cc, Math.min(127, Math.max(0, value))]);
-            log(`CC ${cc} = ${value} (ch ${channel})`);
+            if (sendMidi([status, cc, Math.min(127, Math.max(0, value))])) {
+                log(`CC ${cc} = ${value} (ch ${channel})`);
+            }
         }
 
         function sendNote(note, velocity = 100, channel = 1) {
-            if (!midiOutput) return;
             const noteOn = 0x90 | (channel - 1);
             const noteOff = 0x80 | (channel - 1);
             // Send both immediately - TP-7 just needs the trigger
-            midiOutput.send([noteOn, note, velocity]);
-            midiOutput.send([noteOff, note, 0]);
-            log(`Cue ${note}`);
+            if (sendMidi([noteOn, note, velocity])) {
+                sendMidi([noteOff, note, 0]);
+                log(`Cue ${note}`);
+            }
         }
 
         function sendPitchBend(value, channel = 1) {
-            if (!midiOutput) return;
             const bent = value + 8192;
             const lsb = bent & 0x7F;
             const msb = (bent >> 7) & 0x7F;
             const status = 0xE0 | (channel - 1);
-            midiOutput.send([status, lsb, msb]);
-            log(`Pitch Bend = ${value}`);
+            if (sendMidi([status, lsb, msb])) {
+                log(`Pitch Bend = ${value}`);
+            }
         }
 
         // =====================================================================
@@ -1454,7 +1648,7 @@
             state.transport = value;
 
             document.getElementById('speed-slider').value = value;
-            document.getElementById('speed-value').textContent = `(CC18: ${value})`;
+            document.getElementById('speed-value').textContent = `(MIDI value: ${value})`;
 
             document.querySelectorAll('.transport-btn[data-speed]').forEach(btn => {
                 btn.classList.toggle('active', parseInt(btn.dataset.speed) === value);
@@ -1465,17 +1659,17 @@
             let stateName, stateClass, rockerSpeed;
 
             // Calculate rocker speed multiplier
+            // Formula: speed = (value - 64) / 4
             // 64 = 0x (stop), 68 = +1x, 60 = -1x, 0 = -16x, 127 = +16x
+            const speedMult = (value - 64) / 4;
             if (value === 64) {
                 rockerSpeed = '0x';
-            } else if (value < 64) {
-                // Reverse: 0 = -16x, 60 = -1x
-                const mult = Math.round((64 - value) / 4);
-                rockerSpeed = `-${mult}x`;
+            } else if (Number.isInteger(speedMult)) {
+                // Whole number: show as integer
+                rockerSpeed = speedMult > 0 ? `+${speedMult}x` : `${speedMult}x`;
             } else {
-                // Forward: 68 = +1x, 127 = +16x
-                const mult = Math.round((value - 64) / 4);
-                rockerSpeed = `+${mult}x`;
+                // Fractional: show one decimal place
+                rockerSpeed = speedMult > 0 ? `+${speedMult.toFixed(1)}x` : `${speedMult.toFixed(1)}x`;
             }
 
             if (state.recording) {
@@ -1636,6 +1830,11 @@
             const container = document.getElementById('gain-controls');
             container.innerHTML = '';
 
+            // Convert MIDI value (0-127) to dB (0-42)
+            function midiToDb(val) {
+                return Math.round((val / 127) * 42);
+            }
+
             for (let input = 1; input <= 3; input++) {
                 const group = document.createElement('div');
                 group.className = 'control-group';
@@ -1643,22 +1842,20 @@
                     <div class="gain-control">
                         <div class="gain-header">
                             <label>Input ${input}</label>
-                            <span class="gain-value">50%</span>
+                            <span class="gain-value">0dB</span>
                         </div>
                         <div class="gain-slider-container">
                             <div class="gain-scale">
-                                <span>0 —</span>
-                                <span>25 —</span>
-                                <span class="center-mark">— 50 —</span>
-                                <span>— 75</span>
-                                <span>— 100</span>
+                                <span>0dB</span>
+                                <span>21dB</span>
+                                <span>42dB</span>
                             </div>
-                            <input type="range" class="gain-slider" data-input="${input}" min="0" max="127" value="64">
+                            <input type="range" class="gain-slider" data-input="${input}" min="0" max="127" value="0">
                         </div>
                         <div class="gain-buttons">
-                            <button class="gain-min" data-input="${input}">0%</button>
-                            <button class="gain-center" data-input="${input}">50%</button>
-                            <button class="gain-max" data-input="${input}">100%</button>
+                            <button class="gain-min" data-input="${input}">0dB</button>
+                            <button class="gain-mid" data-input="${input}">21dB</button>
+                            <button class="gain-max" data-input="${input}">42dB</button>
                         </div>
                     </div>
                 `;
@@ -1668,26 +1865,26 @@
                 const valueDisplay = group.querySelector('.gain-value');
 
                 slider.addEventListener('input', () => {
-                    const pct = Math.round((slider.value / 127) * 100);
-                    valueDisplay.textContent = pct + '%';
+                    const db = midiToDb(slider.value);
+                    valueDisplay.textContent = db + 'dB';
                     sendCC(9, parseInt(slider.value), input);
                 });
 
                 group.querySelector('.gain-min').addEventListener('click', () => {
                     slider.value = 0;
-                    valueDisplay.textContent = '0%';
+                    valueDisplay.textContent = '0dB';
                     sendCC(9, 0, input);
                 });
 
-                group.querySelector('.gain-center').addEventListener('click', () => {
+                group.querySelector('.gain-mid').addEventListener('click', () => {
                     slider.value = 64;
-                    valueDisplay.textContent = '50%';
+                    valueDisplay.textContent = '21dB';
                     sendCC(9, 64, input);
                 });
 
                 group.querySelector('.gain-max').addEventListener('click', () => {
                     slider.value = 127;
-                    valueDisplay.textContent = '100%';
+                    valueDisplay.textContent = '42dB';
                     sendCC(9, 127, input);
                 });
             }
@@ -1787,14 +1984,15 @@
         }
 
         function autoConnectTP7() {
-            if (midiOutput) return; // Already connected
+            if (midiOutput || connectionType === 'ble') return; // Already connected
 
             for (const output of midiAccess.outputs.values()) {
                 if (output.name.toLowerCase().includes('tp-7')) {
                     midiOutput = output;
+                    connectionType = 'usb';
                     // Update dropdown selection
                     document.getElementById('midi-output').value = output.id;
-                    updateStatus('connected', `Connected: ${output.name}`);
+                    updateStatus('connected', `USB: ${output.name}`);
                     log(`Auto-connected to ${output.name}`);
                     return;
                 }
@@ -1830,7 +2028,8 @@
             midiOutput = midiAccess.outputs.get(outputId);
 
             if (midiOutput) {
-                updateStatus('connected', `Connected: ${midiOutput.name}`);
+                connectionType = 'usb';
+                updateStatus('connected', `USB: ${midiOutput.name}`);
                 log(`Connected to ${midiOutput.name}`);
             } else {
                 updateStatus('disconnected', 'Connection failed');
@@ -1856,6 +2055,76 @@
         }
 
         // =====================================================================
+        // BLE MIDI Connection
+        // =====================================================================
+
+        async function connectBLE() {
+            if (!navigator.bluetooth) {
+                log('Web Bluetooth not supported');
+                return;
+            }
+
+            try {
+                updateBLEStatus('connecting', 'Scanning...');
+                log('Scanning for BLE MIDI devices...');
+
+                bleDevice = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { services: [BLE_MIDI_SERVICE] },
+                        { namePrefix: 'TP-7' }
+                    ],
+                    optionalServices: [BLE_MIDI_SERVICE]
+                });
+
+                bleDevice.addEventListener('gattserverdisconnected', onBLEDisconnected);
+
+                updateBLEStatus('connecting', 'Connecting...');
+                const server = await bleDevice.gatt.connect();
+
+                const service = await server.getPrimaryService(BLE_MIDI_SERVICE);
+                bleMidiCharacteristic = await service.getCharacteristic(BLE_MIDI_CHARACTERISTIC);
+
+                connectionType = 'ble';
+                updateBLEStatus('connected', `BLE: ${bleDevice.name}`);
+                log(`Connected to ${bleDevice.name} via Bluetooth`);
+
+                document.getElementById('ble-connect-btn').style.display = 'none';
+                document.getElementById('ble-disconnect-btn').style.display = 'inline-block';
+
+            } catch (err) {
+                console.error('BLE connection error:', err);
+                updateBLEStatus('disconnected', 'Connection failed');
+                log(`BLE Error: ${err.message}`);
+            }
+        }
+
+        function disconnectBLE() {
+            if (bleDevice && bleDevice.gatt.connected) {
+                bleDevice.gatt.disconnect();
+            }
+            onBLEDisconnected();
+        }
+
+        function onBLEDisconnected() {
+            bleMidiCharacteristic = null;
+            if (connectionType === 'ble') {
+                connectionType = null;
+            }
+            updateBLEStatus('disconnected', 'Disconnected');
+            log('BLE disconnected');
+
+            document.getElementById('ble-connect-btn').style.display = 'inline-block';
+            document.getElementById('ble-disconnect-btn').style.display = 'none';
+        }
+
+        function updateBLEStatus(statusState, text) {
+            const statusEl = document.getElementById('ble-status');
+            const statusText = document.getElementById('ble-status-text');
+            statusEl.className = statusState;
+            statusText.textContent = text;
+        }
+
+        // =====================================================================
         // UI Event Handlers
         // =====================================================================
 
@@ -1865,9 +2134,24 @@
             createGainControls();
             createCueButtons();
 
-            // Connection buttons
+            // Connection tabs
+            document.querySelectorAll('.conn-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.conn-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    const tabName = tab.dataset.tab;
+                    document.getElementById('usb-connection').style.display = tabName === 'usb' ? 'flex' : 'none';
+                    document.getElementById('ble-connection').style.display = tabName === 'ble' ? 'flex' : 'none';
+                });
+            });
+
+            // USB Connection buttons
             document.getElementById('connect-btn').addEventListener('click', connect);
             document.getElementById('refresh-btn').addEventListener('click', refreshOutputs);
+
+            // BLE Connection buttons
+            document.getElementById('ble-connect-btn').addEventListener('click', connectBLE);
+            document.getElementById('ble-disconnect-btn').addEventListener('click', disconnectBLE);
 
             // Transport buttons
             document.querySelectorAll('.transport-btn[data-speed]').forEach(btn => {
@@ -1876,23 +2160,21 @@
                 });
             });
 
-            // Record toggle
-            const recBtn = document.getElementById('btn-rec');
-            recBtn.addEventListener('click', () => {
-                state.recording = !state.recording;
-                recBtn.classList.toggle('active', state.recording);
-                sendCC(14, state.recording ? 127 : 0);
-                updateTransportState(state.transport);
-            });
-
             // Speed slider
             const speedSlider = document.getElementById('speed-slider');
             speedSlider.addEventListener('input', () => {
                 setTransport(parseInt(speedSlider.value));
             });
 
-            // Speed slider markers
+            // Speed slider markers (old class, keeping for compatibility)
             document.querySelectorAll('.slider-markers span').forEach(marker => {
+                marker.addEventListener('click', () => {
+                    setTransport(parseInt(marker.dataset.val));
+                });
+            });
+
+            // Rocker scale labels (new clickable scale with ticks)
+            document.querySelectorAll('#section-rocker .scale-with-ticks span[data-val]').forEach(marker => {
                 marker.addEventListener('click', () => {
                     setTransport(parseInt(marker.dataset.val));
                 });
@@ -1937,6 +2219,119 @@
                     setPitch(parseInt(btn.dataset.pitch));
                 });
             });
+
+            // Manual pitch input
+            document.getElementById('pitch-manual-apply').addEventListener('click', () => {
+                const val = parseInt(document.getElementById('pitch-manual').value);
+                if (!isNaN(val) && val >= -8192 && val <= 8191) {
+                    setPitch(val);
+                }
+            });
+
+            document.getElementById('pitch-manual').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('pitch-manual-apply').click();
+                }
+            });
+
+            // Manual rocker input
+            document.getElementById('rocker-manual-apply').addEventListener('click', () => {
+                const val = parseInt(document.getElementById('rocker-manual').value);
+                if (!isNaN(val) && val >= 0 && val <= 127) {
+                    setTransport(val);
+                }
+            });
+
+            document.getElementById('rocker-manual').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('rocker-manual-apply').click();
+                }
+            });
+
+            // =====================================================================
+            // Speed Debug Panel
+            // =====================================================================
+
+            let sweepInterval = null;
+
+            function calculateRockerMult(cc18) {
+                // CC18: 64=stop(0x), 60=-1x, 68=+1x, 0=-16x, 127=+16x
+                // Formula: (cc18 - 64) / 4
+                return (cc18 - 64) / 4;
+            }
+
+            function calculatePitchMult(pitch) {
+                // Asymmetric: -8192=x0.25, 0=x1, +8191=x2
+                if (pitch < 0) {
+                    return 1 + (pitch / 8192) * 0.75;
+                } else {
+                    return 1 + (pitch / 8192);
+                }
+            }
+
+            function updateDebugDisplay() {
+                const rocker = state.transport;
+                const pitch = parseInt(document.getElementById('pitch-bend').value);
+
+                const rockerMult = calculateRockerMult(rocker);
+                const pitchMult = calculatePitchMult(pitch);
+                const finalSpeed = rockerMult * pitchMult;
+
+                document.getElementById('debug-rocker').textContent = rocker;
+                document.getElementById('debug-rocker-mult').textContent = `(${rockerMult.toFixed(2)}x)`;
+                document.getElementById('debug-pitch').textContent = pitch;
+                document.getElementById('debug-pitch-mult').textContent = `(x${pitchMult.toFixed(3)})`;
+                document.getElementById('debug-final-speed').textContent = `${finalSpeed.toFixed(3)}x`;
+            }
+
+            // Update debug on transport/pitch changes
+            const origSetTransport = setTransport;
+            setTransport = function(value) {
+                origSetTransport(value);
+                document.getElementById('rocker-manual').value = value;
+                updateDebugDisplay();
+            };
+
+            const origSetPitch = setPitch;
+            setPitch = function(pitch) {
+                origSetPitch(pitch);
+                document.getElementById('pitch-manual').value = pitch;
+                updateDebugDisplay();
+            };
+
+            // Sweep to find stop point
+            document.getElementById('sweep-start').addEventListener('click', () => {
+                let pitch = 0;
+                setTransport(60); // Set rocker to -1x
+                document.getElementById('sweep-status').textContent = 'Sweeping...';
+
+                sweepInterval = setInterval(() => {
+                    setPitch(pitch);
+                    document.getElementById('sweep-status').textContent = `Testing pitch: ${pitch}`;
+                    pitch += 10;
+                    if (pitch > 2000) {
+                        clearInterval(sweepInterval);
+                        document.getElementById('sweep-status').textContent = 'Sweep complete (0-2000)';
+                    }
+                }, 200);
+            });
+
+            document.getElementById('sweep-stop').addEventListener('click', () => {
+                if (sweepInterval) {
+                    clearInterval(sweepInterval);
+                    sweepInterval = null;
+                }
+                document.getElementById('sweep-status').textContent = 'Stopped';
+            });
+
+            document.getElementById('debug-test-apply').addEventListener('click', () => {
+                const pitch = parseInt(document.getElementById('debug-test-pitch').value);
+                setTransport(60); // Rocker -1x
+                setPitch(pitch);
+            });
+
+            // Initialize debug display
+            setTimeout(updateDebugDisplay, 500);
 
             // Pitch scale markers
             document.querySelectorAll('.pitch-scale span').forEach(marker => {
@@ -2005,8 +2400,17 @@
             editToggle.addEventListener('click', () => {
                 editMode = !editMode;
                 editToggle.classList.toggle('active', editMode);
-                editToggle.textContent = editMode ? 'Done Editing' : 'Edit Layout';
+                editToggle.textContent = editMode ? 'Done Editing' : '✏️ Layout';
                 toggleDraggable(editMode);
+            });
+
+            // Clear state button
+            document.getElementById('clear-state-btn').addEventListener('click', () => {
+                if (confirm('Clear all saved state (layout, mixer, gain settings)?')) {
+                    localStorage.removeItem('tp7-control-state');
+                    localStorage.removeItem('tp7-section-order');
+                    location.reload();
+                }
             });
 
             function toggleDraggable(enabled) {
@@ -2193,8 +2597,8 @@
                                 if (controlState.inputGains[i] !== undefined) {
                                     slider.value = controlState.inputGains[i];
                                     const valueDisplay = slider.closest('.gain-control').querySelector('.gain-value');
-                                    const pct = Math.round((slider.value / 127) * 100);
-                                    valueDisplay.textContent = pct + '%';
+                                    const db = Math.round((slider.value / 127) * 42);
+                                    valueDisplay.textContent = db + 'dB';
                                 }
                             });
                         }
