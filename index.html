@@ -17,6 +17,9 @@
             --warning: #ff9800;
             --danger: #f44336;
             --border: #444;
+            --loop-in: #ff9800;
+            --loop-out: #4caf50;
+            --cue-set: #9c27b0;
         }
 
         * {
@@ -142,6 +145,47 @@
             color: var(--accent);
             text-transform: uppercase;
             letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Transport State Indicator */
+        .transport-state {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        .transport-state.stopped {
+            background: rgba(136, 136, 136, 0.2);
+            color: var(--text-dim);
+        }
+
+        .transport-state.playing {
+            background: rgba(76, 175, 80, 0.2);
+            color: var(--success);
+        }
+
+        .transport-state.rewinding {
+            background: rgba(255, 152, 0, 0.2);
+            color: var(--warning);
+        }
+
+        .transport-state.forwarding {
+            background: rgba(33, 150, 243, 0.2);
+            color: #2196f3;
+        }
+
+        .transport-state.recording {
+            background: rgba(244, 67, 54, 0.3);
+            color: var(--danger);
         }
 
         /* Transport Controls */
@@ -149,24 +193,83 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            margin-bottom: 20px;
         }
 
         .transport-btn {
-            min-width: 80px;
-            padding: 15px 20px;
-            font-size: 1rem;
+            min-width: 70px;
+            padding: 12px 16px;
+            font-size: 0.9rem;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
         }
 
         .transport-btn .icon {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
+        }
+
+        .transport-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
         }
 
         .transport-btn.rec { background: rgba(244, 67, 54, 0.2); border-color: var(--danger); }
         .transport-btn.rec.active { background: var(--danger); color: white; }
+
+        /* Speed Slider in Transport */
+        .transport-slider-container {
+            background: var(--bg);
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .transport-slider-container label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+        }
+
+        .transport-slider-container .value-display {
+            font-family: 'SF Mono', Monaco, monospace;
+            color: var(--accent);
+        }
+
+        .slider-with-markers {
+            position: relative;
+            padding-top: 20px;
+        }
+
+        .slider-markers {
+            display: flex;
+            justify-content: space-between;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+        }
+
+        .slider-markers span {
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        .slider-markers span:hover {
+            background: var(--surface-hover);
+            color: var(--text);
+        }
+
+        .slider-markers span.active {
+            color: var(--accent);
+            font-weight: 600;
+        }
 
         /* Control Grid */
         .control-grid {
@@ -250,6 +353,42 @@
             color: white;
         }
 
+        /* Loop State Colors */
+        .toggle-btn.loop-in {
+            background: var(--loop-in);
+            border-color: var(--loop-in);
+            color: white;
+        }
+
+        .toggle-btn.loop-out {
+            background: var(--loop-out);
+            border-color: var(--loop-out);
+            color: white;
+        }
+
+        .loop-status {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .loop-status.idle {
+            background: var(--bg);
+            color: var(--text-dim);
+        }
+
+        .loop-status.in-set {
+            background: rgba(255, 152, 0, 0.2);
+            color: var(--loop-in);
+        }
+
+        .loop-status.active {
+            background: rgba(76, 175, 80, 0.2);
+            color: var(--loop-out);
+        }
+
         /* Channel Strips */
         .channel-strips {
             display: grid;
@@ -323,6 +462,28 @@
         }
 
         /* Cue Section */
+        .cue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .cue-header p {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        .cue-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .cue-actions button {
+            padding: 6px 12px;
+            font-size: 0.75rem;
+        }
+
         .cue-grid {
             display: grid;
             grid-template-columns: repeat(8, 1fr);
@@ -342,11 +503,32 @@
             justify-content: center;
             font-size: 0.8rem;
             padding: 5px;
+            position: relative;
         }
 
         .cue-btn:active {
-            background: var(--accent);
             transform: scale(0.95);
+        }
+
+        .cue-btn.set {
+            background: var(--cue-set);
+            border-color: var(--cue-set);
+            color: white;
+        }
+
+        .cue-btn .cue-indicator {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+            display: none;
+        }
+
+        .cue-btn.set .cue-indicator {
+            display: block;
         }
 
         /* Log */
@@ -448,25 +630,28 @@
 
             <!-- Transport -->
             <div class="section">
-                <h2>Transport</h2>
+                <h2>
+                    Transport (CC 18)
+                    <span id="transport-state" class="transport-state stopped">Stopped</span>
+                </h2>
                 <div class="transport-buttons">
-                    <button class="transport-btn" id="btn-super-rew" title="Super Fast Rewind">
+                    <button class="transport-btn" id="btn-super-rew" data-speed="0" title="Super Fast Rewind">
                         <span class="icon">⏪</span>
                         <span>Fast REW</span>
                     </button>
-                    <button class="transport-btn" id="btn-rew" title="Rewind">
+                    <button class="transport-btn" id="btn-rew" data-speed="60" title="Rewind x1">
                         <span class="icon">◀</span>
                         <span>REW</span>
                     </button>
-                    <button class="transport-btn" id="btn-stop" title="Stop">
+                    <button class="transport-btn active" id="btn-stop" data-speed="64" title="Stop">
                         <span class="icon">⏹</span>
                         <span>Stop</span>
                     </button>
-                    <button class="transport-btn" id="btn-play" title="Play Forward">
+                    <button class="transport-btn" id="btn-play" data-speed="68" title="Play x1">
                         <span class="icon">▶</span>
                         <span>Play</span>
                     </button>
-                    <button class="transport-btn" id="btn-super-fwd" title="Super Fast Forward">
+                    <button class="transport-btn" id="btn-super-fwd" data-speed="127" title="Super Fast Forward">
                         <span class="icon">⏩</span>
                         <span>Fast FWD</span>
                     </button>
@@ -475,14 +660,31 @@
                         <span>Rec</span>
                     </button>
                 </div>
+
+                <!-- Speed Slider -->
+                <div class="transport-slider-container">
+                    <label>Speed Control: <span class="value-display" id="speed-value">64</span>
+                        <span id="speed-description">(Stopped)</span>
+                    </label>
+                    <div class="slider-with-markers">
+                        <div class="slider-markers">
+                            <span data-val="0">0 Fast←</span>
+                            <span data-val="60">60 ←x1</span>
+                            <span data-val="64" class="active">64 Stop</span>
+                            <span data-val="68">68 x1→</span>
+                            <span data-val="127">Fast→ 127</span>
+                        </div>
+                        <input type="range" id="speed-slider" min="0" max="127" value="64">
+                    </div>
+                </div>
             </div>
 
-            <!-- Playback Speed -->
+            <!-- Playback Speed (Pitch Bend) -->
             <div class="section">
-                <h2>Playback Speed (Pitch Bend)</h2>
+                <h2>Playback Speed Modifier (Pitch Bend)</h2>
                 <div class="control-grid">
                     <div class="control-group" style="grid-column: 1 / -1;">
-                        <label>Speed</label>
+                        <label>Speed Offset (applies to current transport)</label>
                         <div class="value" id="pitch-value">0</div>
                         <div class="pitch-bend-container">
                             <input type="range" id="pitch-bend" min="-8192" max="8191" value="0" class="pitch-bend-slider">
@@ -498,11 +700,12 @@
                 <div class="control-grid">
                     <div class="control-group">
                         <label>Loop Mode (CC 17)</label>
-                        <div class="toggle-group">
-                            <button class="toggle-btn active" data-loop="0">Off</button>
-                            <button class="toggle-btn" data-loop="1">In</button>
-                            <button class="toggle-btn" data-loop="2">Out</button>
+                        <div class="toggle-group" id="loop-toggle">
+                            <button class="toggle-btn" data-loop="0" id="loop-off">Off</button>
+                            <button class="toggle-btn" data-loop="1" id="loop-in">In</button>
+                            <button class="toggle-btn" data-loop="2" id="loop-out">Out</button>
                         </div>
+                        <div class="loop-status idle" id="loop-status">No loop set</div>
                     </div>
                     <div class="control-group">
                         <label>Cue Rec Mode (CC 16)</label>
@@ -511,15 +714,6 @@
                             <button class="toggle-btn" id="cue-rec-on">On</button>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- FFwd/Rew Fine Control -->
-            <div class="section">
-                <h2>FFwd / Rewind (CC 18)</h2>
-                <div class="control-group">
-                    <label>Position: <span id="ffwd-value">64</span> (64 = Stop, &lt;64 = Rev, &gt;64 = Fwd)</label>
-                    <input type="range" id="ffwd-rew" min="0" max="127" value="64">
                 </div>
             </div>
 
@@ -594,9 +788,12 @@
             <!-- Cue Markers -->
             <div class="section">
                 <h2>Cue Markers (Note On/Off)</h2>
-                <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 15px;">
-                    Enable Cue Rec Mode above to record markers. Click to trigger/recall cues.
-                </p>
+                <div class="cue-header">
+                    <p>Enable Cue Rec Mode to record markers. Click to trigger/recall.</p>
+                    <div class="cue-actions">
+                        <button id="cue-clear-all">Clear All</button>
+                    </div>
+                </div>
                 <div class="cue-grid" id="cue-grid">
                     <!-- Generated by JS -->
                 </div>
@@ -622,6 +819,15 @@
 
         let midiOutput = null;
         let midiAccess = null;
+
+        // State
+        const state = {
+            transport: 64,       // Current CC18 value (64 = stopped)
+            recording: false,
+            loopState: 'off',    // 'off', 'in', 'out'
+            cueRecMode: false,
+            cues: new Set(),     // Set of recorded cue note numbers
+        };
 
         // Check Web MIDI support
         if (!navigator.requestMIDIAccess) {
@@ -653,17 +859,12 @@
 
         function sendPitchBend(value, channel = 1) {
             if (!midiOutput) return;
-            // value: -8192 to 8191 -> 0 to 16383
             const bent = value + 8192;
             const lsb = bent & 0x7F;
             const msb = (bent >> 7) & 0x7F;
             const status = 0xE0 | (channel - 1);
             midiOutput.send([status, lsb, msb]);
             log(`Pitch Bend = ${value}`);
-        }
-
-        function onoff(v) {
-            return v ? 127 : 0;
         }
 
         // =====================================================================
@@ -677,10 +878,169 @@
             entry.className = 'entry';
             entry.innerHTML = `<span class="time">${time}</span><span class="msg">${msg}</span>`;
             logEl.insertBefore(entry, logEl.firstChild);
-            // Keep only last 50 entries
             while (logEl.children.length > 50) {
                 logEl.removeChild(logEl.lastChild);
             }
+        }
+
+        // =====================================================================
+        // Transport State
+        // =====================================================================
+
+        function updateTransportState(value) {
+            state.transport = value;
+
+            // Update slider
+            document.getElementById('speed-slider').value = value;
+            document.getElementById('speed-value').textContent = value;
+
+            // Update markers
+            document.querySelectorAll('.slider-markers span').forEach(m => {
+                m.classList.toggle('active', parseInt(m.dataset.val) === value);
+            });
+
+            // Update transport buttons
+            document.querySelectorAll('.transport-btn[data-speed]').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.speed) === value);
+            });
+
+            // Update state indicator
+            const stateEl = document.getElementById('transport-state');
+            const descEl = document.getElementById('speed-description');
+            let stateName, stateClass;
+
+            if (state.recording) {
+                stateName = 'Recording';
+                stateClass = 'recording';
+            } else if (value === 64) {
+                stateName = 'Stopped';
+                stateClass = 'stopped';
+            } else if (value < 64) {
+                if (value === 0) {
+                    stateName = 'Fast Rewind';
+                } else if (value === 60) {
+                    stateName = 'Rewind x1';
+                } else {
+                    stateName = `Rewind (${value})`;
+                }
+                stateClass = 'rewinding';
+            } else {
+                if (value === 127) {
+                    stateName = 'Fast Forward';
+                } else if (value === 68) {
+                    stateName = 'Playing x1';
+                } else {
+                    stateName = `Forward (${value})`;
+                }
+                stateClass = value === 68 ? 'playing' : 'forwarding';
+            }
+
+            stateEl.textContent = stateName;
+            stateEl.className = 'transport-state ' + stateClass;
+            descEl.textContent = `(${stateName})`;
+        }
+
+        function setTransport(value) {
+            sendCC(18, value);
+            updateTransportState(value);
+        }
+
+        // =====================================================================
+        // Loop State
+        // =====================================================================
+
+        function updateLoopState(newState) {
+            state.loopState = newState;
+
+            const offBtn = document.getElementById('loop-off');
+            const inBtn = document.getElementById('loop-in');
+            const outBtn = document.getElementById('loop-out');
+            const statusEl = document.getElementById('loop-status');
+
+            // Reset all buttons
+            offBtn.className = 'toggle-btn';
+            inBtn.className = 'toggle-btn';
+            outBtn.className = 'toggle-btn';
+
+            switch (newState) {
+                case 'off':
+                    offBtn.classList.add('active');
+                    statusEl.className = 'loop-status idle';
+                    statusEl.textContent = 'No loop set';
+                    break;
+                case 'in':
+                    inBtn.classList.add('loop-in');
+                    statusEl.className = 'loop-status in-set';
+                    statusEl.textContent = 'Loop IN set - click OUT to complete';
+                    break;
+                case 'out':
+                    inBtn.classList.add('loop-in');
+                    outBtn.classList.add('loop-out');
+                    statusEl.className = 'loop-status active';
+                    statusEl.textContent = 'Loop active';
+                    break;
+            }
+        }
+
+        function handleLoopClick(mode) {
+            if (mode === 0) {
+                // Off - always reset
+                sendCC(17, 0);
+                updateLoopState('off');
+            } else if (mode === 1) {
+                // In
+                sendCC(17, 1);
+                updateLoopState('in');
+            } else if (mode === 2) {
+                // Out - only works if In was set
+                if (state.loopState === 'in') {
+                    sendCC(17, 2);
+                    updateLoopState('out');
+                } else {
+                    log('Set Loop IN first');
+                }
+            }
+        }
+
+        // =====================================================================
+        // Cue Markers
+        // =====================================================================
+
+        function createCueButtons() {
+            const grid = document.getElementById('cue-grid');
+            grid.innerHTML = '';
+
+            for (let i = 0; i < 32; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'cue-btn';
+                btn.dataset.note = i;
+                btn.innerHTML = `${i}<span class="cue-indicator"></span>`;
+
+                if (state.cues.has(i)) {
+                    btn.classList.add('set');
+                }
+
+                btn.addEventListener('click', () => handleCueClick(i, btn));
+                grid.appendChild(btn);
+            }
+        }
+
+        function handleCueClick(note, btn) {
+            sendNote(note, 100, 1);
+
+            // If in cue rec mode, mark as set
+            if (state.cueRecMode) {
+                state.cues.add(note);
+                btn.classList.add('set');
+            }
+        }
+
+        function clearAllCues() {
+            state.cues.clear();
+            document.querySelectorAll('.cue-btn').forEach(btn => {
+                btn.classList.remove('set');
+            });
+            log('All cue markers cleared (local state only)');
         }
 
         // =====================================================================
@@ -735,10 +1095,10 @@
             }
         }
 
-        function updateStatus(state, text) {
+        function updateStatus(statusState, text) {
             const statusEl = document.getElementById('status');
             const statusText = document.getElementById('status-text');
-            statusEl.className = state;
+            statusEl.className = statusState;
             statusText.textContent = text;
         }
 
@@ -748,23 +1108,39 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             initMIDI();
+            createCueButtons();
 
             // Connection buttons
             document.getElementById('connect-btn').addEventListener('click', connect);
             document.getElementById('refresh-btn').addEventListener('click', refreshOutputs);
 
             // Transport buttons
-            document.getElementById('btn-super-rew').addEventListener('click', () => sendCC(18, 0));
-            document.getElementById('btn-rew').addEventListener('click', () => sendCC(18, 60));
-            document.getElementById('btn-stop').addEventListener('click', () => sendCC(18, 64));
-            document.getElementById('btn-play').addEventListener('click', () => sendCC(18, 68));
-            document.getElementById('btn-super-fwd').addEventListener('click', () => sendCC(18, 127));
+            document.querySelectorAll('.transport-btn[data-speed]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setTransport(parseInt(btn.dataset.speed));
+                });
+            });
 
             // Record toggle
             const recBtn = document.getElementById('btn-rec');
             recBtn.addEventListener('click', () => {
-                recBtn.classList.toggle('active');
-                sendCC(14, recBtn.classList.contains('active') ? 127 : 0);
+                state.recording = !state.recording;
+                recBtn.classList.toggle('active', state.recording);
+                sendCC(14, state.recording ? 127 : 0);
+                updateTransportState(state.transport);
+            });
+
+            // Speed slider
+            const speedSlider = document.getElementById('speed-slider');
+            speedSlider.addEventListener('input', () => {
+                setTransport(parseInt(speedSlider.value));
+            });
+
+            // Speed slider markers (clickable presets)
+            document.querySelectorAll('.slider-markers span').forEach(marker => {
+                marker.addEventListener('click', () => {
+                    setTransport(parseInt(marker.dataset.val));
+                });
             });
 
             // Pitch bend
@@ -780,34 +1156,27 @@
                 sendPitchBend(0);
             });
 
-            // FFwd/Rew slider
-            const ffwdSlider = document.getElementById('ffwd-rew');
-            const ffwdValue = document.getElementById('ffwd-value');
-            ffwdSlider.addEventListener('input', () => {
-                ffwdValue.textContent = ffwdSlider.value;
-                sendCC(18, parseInt(ffwdSlider.value));
-            });
-
             // Loop mode buttons
-            document.querySelectorAll('[data-loop]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('[data-loop]').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    sendCC(17, parseInt(btn.dataset.loop));
-                });
-            });
+            document.getElementById('loop-off').addEventListener('click', () => handleLoopClick(0));
+            document.getElementById('loop-in').addEventListener('click', () => handleLoopClick(1));
+            document.getElementById('loop-out').addEventListener('click', () => handleLoopClick(2));
 
             // Cue rec mode
             document.getElementById('cue-rec-off').addEventListener('click', () => {
+                state.cueRecMode = false;
                 document.getElementById('cue-rec-off').classList.add('active');
                 document.getElementById('cue-rec-on').classList.remove('active');
                 sendCC(16, 0);
             });
             document.getElementById('cue-rec-on').addEventListener('click', () => {
+                state.cueRecMode = true;
                 document.getElementById('cue-rec-on').classList.add('active');
                 document.getElementById('cue-rec-off').classList.remove('active');
                 sendCC(16, 127);
             });
+
+            // Clear cues
+            document.getElementById('cue-clear-all').addEventListener('click', clearAllCues);
 
             // Channel strips
             document.querySelectorAll('.channel-strip').forEach(strip => {
@@ -835,15 +1204,9 @@
                 });
             });
 
-            // Generate cue marker buttons (notes 0-31 for practical use)
-            const cueGrid = document.getElementById('cue-grid');
-            for (let i = 0; i < 32; i++) {
-                const btn = document.createElement('button');
-                btn.className = 'cue-btn';
-                btn.textContent = i;
-                btn.addEventListener('click', () => sendNote(i, 100, 1));
-                cueGrid.appendChild(btn);
-            }
+            // Initialize transport state display
+            updateTransportState(64);
+            updateLoopState('off');
         });
     </script>
 </body>
