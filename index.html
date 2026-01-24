@@ -16,10 +16,85 @@
             --success: #4caf50;
             --warning: #ff9800;
             --danger: #f44336;
+            --info: #2196f3;
             --border: #444;
             --loop-in: #ff9800;
             --loop-out: #4caf50;
             --cue-set: #9c27b0;
+        }
+
+        /* Standardized Info/Warning Boxes */
+        .info-box, .warning-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            margin-bottom: 15px;
+            border: 1px solid;
+        }
+
+        .info-box .icon, .warning-box .icon {
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .info-box {
+            background: rgba(33, 150, 243, 0.1);
+            border-color: var(--info);
+            color: var(--info);
+        }
+
+        .warning-box {
+            background: rgba(255, 152, 0, 0.15);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        /* Scale with Ticks */
+        .scale-with-ticks {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            padding-bottom: 8px;
+        }
+
+        .scale-with-ticks span {
+            position: relative;
+            text-align: center;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        .scale-with-ticks span::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1px;
+            height: 4px;
+            background: var(--text-dim);
+        }
+
+        .scale-with-ticks span:hover {
+            background: var(--surface-hover);
+            color: var(--text);
+        }
+
+        .scale-with-ticks span.center-mark {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .scale-with-ticks span.center-mark::after {
+            background: var(--accent);
+            height: 6px;
         }
 
         * {
@@ -643,24 +718,6 @@
             color: white;
         }
 
-        /* State Warning */
-        .state-warning {
-            background: rgba(255, 152, 0, 0.1);
-            border: 1px solid var(--warning);
-            border-radius: 6px;
-            padding: 10px 14px;
-            margin-bottom: 15px;
-            font-size: 0.75rem;
-            color: var(--warning);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .state-warning .icon {
-            font-size: 1rem;
-        }
-
         /* Cue Play Mode Warning */
         .cue-play-warning {
             background: rgba(156, 39, 176, 0.15);
@@ -919,6 +976,93 @@
             text-decoration: none;
         }
 
+        /* Hotkey Popup */
+        .hotkey-toggle {
+            position: absolute;
+            top: 20px;
+            right: 130px;
+            padding: 8px 12px;
+            font-size: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .hotkey-toggle:hover {
+            border-color: var(--accent);
+        }
+
+        .hotkey-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hotkey-content {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 25px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .hotkey-content h3 {
+            margin-bottom: 20px;
+            color: var(--accent);
+            text-align: center;
+        }
+
+        .hotkey-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .hotkey-section h4 {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .hotkey-row {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        kbd {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.75rem;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .hotkey-content button {
+            width: 100%;
+            padding: 10px;
+            background: var(--accent);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+        }
+
         /* Edit Layout Mode */
         .edit-toggle {
             position: absolute;
@@ -989,8 +1133,35 @@
         <header>
             <h1><span>TP-7</span> MIDI Controller</h1>
             <p class="subtitle">Web MIDI interface for Teenage Engineering TP-7</p>
+            <button id="hotkey-btn" class="hotkey-toggle" title="Keyboard Shortcuts">⌨️</button>
             <button id="edit-layout-toggle" class="edit-toggle">Edit Layout</button>
         </header>
+
+        <!-- Hotkey Popup -->
+        <div id="hotkey-popup" class="hotkey-popup" style="display: none;">
+            <div class="hotkey-content">
+                <h3>Keyboard Shortcuts</h3>
+                <div class="hotkey-grid">
+                    <div class="hotkey-section">
+                        <h4>Cues</h4>
+                        <div class="hotkey-row"><kbd>`</kbd> <kbd>0</kbd> Cue 0</div>
+                        <div class="hotkey-row"><kbd>1</kbd>-<kbd>9</kbd> Cue 1-9</div>
+                        <div class="hotkey-row"><kbd>C</kbd> Toggle Cue Rec</div>
+                    </div>
+                    <div class="hotkey-section">
+                        <h4>Loop</h4>
+                        <div class="hotkey-row"><kbd>I</kbd> Loop In</div>
+                        <div class="hotkey-row"><kbd>O</kbd> Loop Out</div>
+                        <div class="hotkey-row"><kbd>P</kbd> Loop Off</div>
+                    </div>
+                    <div class="hotkey-section">
+                        <h4>Transport</h4>
+                        <div class="hotkey-row"><kbd>Space</kbd> Play/Stop</div>
+                    </div>
+                </div>
+                <button id="hotkey-close">Close</button>
+            </div>
+        </div>
 
         <div id="midi-not-supported" class="not-supported" style="display: none;">
             <h2>Web MIDI Not Supported</h2>
@@ -1002,8 +1173,8 @@
 
         <div id="app">
             <!-- Global State Warning -->
-            <div class="state-warning" style="margin-bottom: 20px;">
-                <span class="icon">⚠️</span>
+            <div class="info-box">
+                <span class="icon">ℹ️</span>
                 <span>All states are LOCAL only. TP-7 doesn't report state via MIDI - UI may not match device after reconnection or physical interaction.</span>
             </div>
 
@@ -1025,7 +1196,7 @@
             <!-- Cue Markers -->
             <div id="section-cue" class="section">
                 <h2>Cue Markers (Note On/Off)</h2>
-                <div class="state-warning" style="background: rgba(255, 152, 0, 0.15); border-color: var(--warning); color: var(--warning); margin-bottom: 10px;">
+                <div class="warning-box">
                     <span class="icon">⚠️</span>
                     <span><strong>Required:</strong> Set MIDI-CUE in TP-7 settings for cue markers to work!</span>
                 </div>
@@ -1070,7 +1241,7 @@
             <!-- Playback Speed (Pitch Bend) -->
             <div id="section-pitch" class="section">
                 <h2>Playback Speed Modifier (Pitch Bend)</h2>
-                <div class="state-warning" style="background: rgba(33, 150, 243, 0.1); border-color: #2196f3; color: #2196f3;">
+                <div class="info-box">
                     <span class="icon">ℹ️</span>
                     <span><strong>1 of 3 speed controls.</strong> Internal multiplier via MIDI. Only during playback. NOT visible on TP-7. (Other 2: SPD on screen - no MIDI access!, Rocker below)</span>
                 </div>
@@ -1082,9 +1253,10 @@
                             <span class="speed-pitch" id="pitch-value">(pitch: 0)</span>
                         </div>
                         <div class="pitch-bend-container">
-                            <div class="pitch-scale">
+                            <div class="scale-with-ticks pitch-scale">
                                 <span data-pitch="-8192">x0.25</span>
-                                <span data-pitch="-4096">x0.63</span>
+                                <span data-pitch="-5461">x0.5</span>
+                                <span data-pitch="-2731">x0.75</span>
                                 <span data-pitch="0" class="center-mark">x1</span>
                                 <span data-pitch="4096">x1.5</span>
                                 <span data-pitch="8191">x2</span>
@@ -1116,13 +1288,13 @@
                     Rocker (CC 18)
                     <span id="transport-state" class="transport-state stopped">Stopped</span>
                 </h2>
-                <div class="state-warning" style="background: rgba(33, 150, 243, 0.1); border-color: #2196f3; color: #2196f3; margin-bottom: 15px;">
+                <div class="info-box">
                     <span class="icon">ℹ️</span>
                     <span><strong>1 of 3 speed controls.</strong> Emulates physical rocker. Works with AND without Play. NOT the SPD on screen!</span>
                 </div>
-                <div class="state-warning" style="background: rgba(244, 67, 54, 0.15); border-color: var(--danger); color: var(--danger); margin-bottom: 15px;">
+                <div class="warning-box">
                     <span class="icon">⚠️</span>
-                    <span><strong>After cue trigger: CAN'T STOP!</strong> Value 64 no longer stops - center shifts! 0-60 = reverse, 61-127 = forward. Slowest speeds at 60/61. Trigger new cue or use physical Stop button.</span>
+                    <span><strong>After cue trigger: CAN'T STOP!</strong> Value 64 no longer stops - center shifts! 0-60 = reverse, 61-127 = forward. Slowest at 60/61. Use physical Stop.</span>
                 </div>
                 <div id="cue-play-warning" class="cue-play-warning">
                     <strong>⚠️ Cue Playback Mode Active</strong>
@@ -1159,15 +1331,19 @@
 
                 <!-- Speed Slider -->
                 <div class="transport-slider-container">
-                    <label>Speed Control: <span class="value-display" id="speed-value">64</span>
-                        <span id="speed-description">(Stopped)</span>
-                    </label>
+                    <label>Rocker Speed</label>
+                    <div class="speed-display">
+                        <span class="speed-multiplier" id="rocker-state">⏹ Stopped</span>
+                        <span class="speed-pitch" id="speed-value">(CC18: 64)</span>
+                    </div>
                     <div class="slider-with-markers">
-                        <div class="slider-markers">
+                        <div class="scale-with-ticks">
                             <span data-val="0">⏪ 0</span>
+                            <span data-val="32">32</span>
                             <span data-val="60">◀ 60</span>
-                            <span data-val="64" class="active">⏹ 64</span>
+                            <span data-val="64" class="center-mark">⏹ 64</span>
                             <span data-val="68">68 ▶</span>
+                            <span data-val="96">96</span>
                             <span data-val="127">127 ⏩</span>
                         </div>
                         <input type="range" id="speed-slider" min="0" max="127" value="64">
@@ -1278,18 +1454,14 @@
             state.transport = value;
 
             document.getElementById('speed-slider').value = value;
-            document.getElementById('speed-value').textContent = value;
-
-            document.querySelectorAll('.slider-markers span').forEach(m => {
-                m.classList.toggle('active', parseInt(m.dataset.val) === value);
-            });
+            document.getElementById('speed-value').textContent = `(CC18: ${value})`;
 
             document.querySelectorAll('.transport-btn[data-speed]').forEach(btn => {
                 btn.classList.toggle('active', parseInt(btn.dataset.speed) === value);
             });
 
             const stateEl = document.getElementById('transport-state');
-            const descEl = document.getElementById('speed-description');
+            const rockerStateEl = document.getElementById('rocker-state');
             let stateName, stateClass;
 
             if (state.recording) {
@@ -1305,25 +1477,25 @@
                 if (value === 0) {
                     stateName = '⏪ Fast Rewind';
                 } else if (value === 60) {
-                    stateName = '◀ Rewind';
+                    stateName = '◀ Rewind x1';
                 } else {
-                    stateName = `◀ Rewind (${value})`;
+                    stateName = `◀ Rew ${value}`;
                 }
                 stateClass = 'rewinding';
             } else {
                 if (value === 127) {
                     stateName = '⏩ Fast Forward';
                 } else if (value === 68) {
-                    stateName = '▶ Playing';
+                    stateName = '▶ Play x1';
                 } else {
-                    stateName = `▶ Forward (${value})`;
+                    stateName = `▶ Fwd ${value}`;
                 }
                 stateClass = value === 68 ? 'playing' : 'forwarding';
             }
 
             stateEl.textContent = stateName;
             stateEl.className = 'transport-state ' + stateClass;
-            descEl.textContent = `(${stateName})`;
+            if (rockerStateEl) rockerStateEl.textContent = stateName;
 
             // Show/hide cue play warning
             const cueWarning = document.getElementById('cue-play-warning');
@@ -2056,10 +2228,29 @@
             loadControlState();
             setupAutoSave();
 
+            // Hotkey popup
+            document.getElementById('hotkey-btn').addEventListener('click', () => {
+                document.getElementById('hotkey-popup').style.display = 'flex';
+            });
+            document.getElementById('hotkey-close').addEventListener('click', () => {
+                document.getElementById('hotkey-popup').style.display = 'none';
+            });
+            document.getElementById('hotkey-popup').addEventListener('click', (e) => {
+                if (e.target.id === 'hotkey-popup') {
+                    document.getElementById('hotkey-popup').style.display = 'none';
+                }
+            });
+
             // Keyboard bindings
             document.addEventListener('keydown', (e) => {
                 // Ignore if typing in an input
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+                // Close popup on Escape
+                if (e.key === 'Escape') {
+                    document.getElementById('hotkey-popup').style.display = 'none';
+                    return;
+                }
 
                 // Number keys map directly: 1->1, 2->2, ..., 9->9, 0->0
                 // Backtick ` also maps to 0 (convenient for Mac)
@@ -2078,6 +2269,26 @@
                         setTransport(64);
                         stopCuePlay();
                     }
+                    e.preventDefault();
+                }
+                // Cue Rec toggle
+                else if (e.key === 'c' || e.key === 'C') {
+                    state.cueRecMode = !state.cueRecMode;
+                    document.getElementById('cue-rec-on').classList.toggle('active', state.cueRecMode);
+                    document.getElementById('cue-rec-on').classList.toggle('rec-active', state.cueRecMode);
+                    document.getElementById('cue-rec-off').classList.toggle('active', !state.cueRecMode);
+                    sendCC(16, state.cueRecMode ? 127 : 0);
+                    e.preventDefault();
+                }
+                // Loop controls
+                else if (e.key === 'i' || e.key === 'I') { // Loop In
+                    handleLoopClick(1);
+                    e.preventDefault();
+                } else if (e.key === 'o' || e.key === 'O') { // Loop Out
+                    handleLoopClick(2);
+                    e.preventDefault();
+                } else if (e.key === 'p' || e.key === 'P') { // Loop Off
+                    handleLoopClick(0);
                     e.preventDefault();
                 }
             });
