@@ -156,9 +156,34 @@ When recalling a cue:
 
 ---
 
+## Monitoring TP-7 State via MIDI Input
+
+While you cannot *query* the TP-7 state, you CAN monitor button presses by listening to MIDI input!
+
+### Outgoing Messages from TP-7 (Controller Mode)
+
+When buttons are pressed on the device, TP-7 sends:
+
+| Control | CC | Value | Notes |
+|---------|-----|-------|-------|
+| Up | 20 | 0-127 | 64+ = pressed |
+| Down | 21 | 0-127 | 64+ = pressed |
+| Rec | 22 | 0-127 | 64+ = pressed |
+| Play | 23 | 0-127 | 64+ = pressed |
+| Stop | 24 | 0-127 | 64+ = pressed |
+| Left | 25 | 0-127 | 64+ = pressed |
+| Right | 26 | 0-127 | 64+ = pressed |
+| Memo | 27 | 0-127 | 64+ = pressed |
+| Wheel | 30 | -64 to +63 | Relative, two's complement |
+| Rocker | Pitch Bend | ±8192 | Continuous |
+
+**Use Case:** Connect to TP-7's MIDI input port to monitor user interactions and sync your UI accordingly.
+
+---
+
 ## State Persistence Warning
 
-**TP-7 does NOT report its state via MIDI.**
+**TP-7 does NOT report its state on request.**
 
 This means:
 - You cannot query current transport state
@@ -166,7 +191,9 @@ This means:
 - You cannot query which cues are set
 - After reconnection, UI state may not match device state
 
-All states in control software are LOCAL ONLY and may become out of sync.
+**However:** You CAN monitor button presses via MIDI input to stay in sync when the user interacts with the physical device.
+
+All states in control software are LOCAL ONLY and may become out of sync if the device is controlled externally.
 
 ---
 

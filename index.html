@@ -853,6 +853,9 @@
                     <select id="midi-output">
                         <option value="">Select MIDI Output...</option>
                     </select>
+                    <select id="midi-input">
+                        <option value="">Select MIDI Input (monitor)...</option>
+                    </select>
                     <button id="connect-btn" class="primary">Connect</button>
                     <button id="refresh-btn">Refresh</button>
                 </div>
@@ -1010,6 +1013,7 @@
         // =====================================================================
 
         let midiOutput = null;
+        let midiInput = null;
         let midiAccess = null;
 
         // State
@@ -1397,8 +1401,10 @@
         }
 
         function refreshOutputs() {
-            const select = document.getElementById('midi-output');
-            select.innerHTML = '<option value="">Select MIDI Output...</option>';
+            const outSelect = document.getElementById('midi-output');
+            const inSelect = document.getElementById('midi-input');
+            outSelect.innerHTML = '<option value="">Select MIDI Output...</option>';
+            inSelect.innerHTML = '<option value="">Select MIDI Input (monitor)...</option>';
 
             if (!midiAccess) return;
 
@@ -1409,26 +1415,130 @@
                 if (output.name.toLowerCase().includes('tp-7')) {
                     option.selected = true;
                 }
-                select.appendChild(option);
+                outSelect.appendChild(option);
+            }
+
+            for (const input of midiAccess.inputs.values()) {
+                const option = document.createElement('option');
+                option.value = input.id;
+                option.textContent = input.name;
+                if (input.name.toLowerCase().includes('tp-7')) {
+                    option.selected = true;
+                }
+                inSelect.appendChild(option);
             }
         }
 
         function connect() {
-            const select = document.getElementById('midi-output');
-            const outputId = select.value;
+            const outSelect = document.getElementById('midi-output');
+            const inSelect = document.getElementById('midi-input');
+            const outputId = outSelect.value;
+            const inputId = inSelect.value;
 
             if (!outputId) {
                 log('Please select a MIDI output');
                 return;
             }
 
+            // Connect output
             midiOutput = midiAccess.outputs.get(outputId);
+
+            // Connect input (optional, for monitoring)
+            if (inputId) {
+                // Disconnect previous input
+                if (midiInput) {
+                    midiInput.onmidimessage = null;
+                }
+                midiInput = midiAccess.inputs.get(inputId);
+                if (midiInput) {
+                    midiInput.onmidimessage = handleMidiInput;
+                    log(`Monitoring input: ${midiInput.name}`);
+                }
+            }
+
             if (midiOutput) {
-                updateStatus('connected', `Connected: ${midiOutput.name}`);
+                const statusText = midiInput
+                    ? `Connected: ${midiOutput.name} (monitoring)`
+                    : `Connected: ${midiOutput.name}`;
+                updateStatus('connected', statusText);
                 log(`Connected to ${midiOutput.name}`);
             } else {
                 updateStatus('disconnected', 'Connection failed');
                 log('Failed to connect');
+            }
+        }
+
+        // Handle incoming MIDI from TP-7
+        function handleMidiInput(event) {
+            const [status, data1, data2] = event.data;
+            const channel = (status & 0x0F) + 1;
+            const messageType = status & 0xF0;
+
+            // Control Change
+            if (messageType === 0xB0) {
+                const cc = data1;
+                const value = data2;
+
+                switch (cc) {
+                    case 20: // Up button
+                        log(`⬆️ UP button (${value})`);
+                        break;
+                    case 21: // Down button
+                        log(`⬇️ DOWN button (${value})`);
+                        break;
+                    case 22: // Rec button
+                        log(`⏺️ REC button (${value})`);
+                        if (value >= 64) {
+                            state.recording = true;
+                            document.getElementById('btn-rec').classList.add('active');
+                        } else {
+                            state.recording = false;
+                            document.getElementById('btn-rec').classList.remove('active');
+                        }
+                        updateTransportState(state.transport);
+                        break;
+                    case 23: // Play button
+                        log(`▶️ PLAY button (${value})`);
+                        if (value >= 64) {
+                            setTransport(68);
+                        }
+                        break;
+                    case 24: // Stop button
+                        log(`⏹️ STOP button (${value})`);
+                        if (value >= 64) {
+                            setTransport(64);
+                            stopCuePlay();
+                        }
+                        break;
+                    case 25: // Left button
+                        log(`◀️ LEFT button (${value})`);
+                        break;
+                    case 26: // Right button
+                        log(`▶️ RIGHT button (${value})`);
+                        break;
+                    case 27: // Memo button
+                        log(`🎤 MEMO button (${value})`);
+                        break;
+                    case 30: // Wheel (relative)
+                        const rel = value > 63 ? value - 128 : value;
+                        log(`🎡 WHEEL: ${rel > 0 ? '+' : ''}${rel}`);
+                        break;
+                    default:
+                        log(`CC ${cc} = ${value} (ch ${channel})`);
+                }
+            }
+            // Pitch Bend (rocker)
+            else if (messageType === 0xE0) {
+                const pitchBend = ((data2 << 7) | data1) - 8192;
+                log(`🎚️ ROCKER: ${pitchBend}`);
+            }
+            // Note On
+            else if (messageType === 0x90 && data2 > 0) {
+                log(`🎵 Note ON: ${data1} vel ${data2}`);
+            }
+            // Note Off
+            else if (messageType === 0x80 || (messageType === 0x90 && data2 === 0)) {
+                log(`🎵 Note OFF: ${data1}`);
             }
         }
 
