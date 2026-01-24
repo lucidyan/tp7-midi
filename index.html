@@ -395,6 +395,15 @@
             color: white;
         }
 
+        .toggle-btn.locked {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .toggle-btn.locked:hover {
+            border-color: var(--border);
+        }
+
         .loop-status {
             margin-top: 10px;
             padding: 8px 12px;
@@ -1148,6 +1157,7 @@
             const outBtn = document.getElementById('loop-out');
             const statusEl = document.getElementById('loop-status');
 
+            // Reset all buttons
             offBtn.className = 'toggle-btn';
             inBtn.className = 'toggle-btn';
             outBtn.className = 'toggle-btn';
@@ -1155,34 +1165,47 @@
             switch (newState) {
                 case 'off':
                     offBtn.classList.add('active');
+                    // In/Out unlocked, ready to set new loop
                     statusEl.className = 'loop-status idle';
                     statusEl.textContent = 'No loop set';
                     break;
                 case 'in':
                     inBtn.classList.add('loop-in');
+                    // In is locked (already set), Out is available
+                    inBtn.classList.add('locked');
                     statusEl.className = 'loop-status in-set';
                     statusEl.textContent = '🔶 Loop IN set - click OUT to complete';
                     break;
                 case 'out':
-                    inBtn.classList.add('loop-in');
-                    outBtn.classList.add('loop-out');
+                    inBtn.classList.add('loop-in', 'locked');
+                    outBtn.classList.add('loop-out', 'locked');
+                    // Both locked - only Off can be clicked
                     statusEl.className = 'loop-status active';
-                    statusEl.textContent = '🔁 Loop active';
+                    statusEl.textContent = '🔁 Loop active - click OFF to clear';
                     break;
             }
         }
 
         function handleLoopClick(mode) {
             if (mode === 0) {
+                // Off - always allowed
                 sendCC(17, 0);
                 updateLoopState('off');
             } else if (mode === 1) {
-                sendCC(17, 1);
-                updateLoopState('in');
+                // In - only allowed when off
+                if (state.loopState === 'off') {
+                    sendCC(17, 1);
+                    updateLoopState('in');
+                } else {
+                    log('Cannot change IN - clear loop first with OFF');
+                }
             } else if (mode === 2) {
+                // Out - only allowed when in is set
                 if (state.loopState === 'in') {
                     sendCC(17, 2);
                     updateLoopState('out');
+                } else if (state.loopState === 'out') {
+                    log('Loop already active - click OFF to clear');
                 } else {
                     log('Set Loop IN first');
                 }
@@ -1347,9 +1370,14 @@
         }
 
         function clearAllCues() {
-            state.cues.clear();
-            createCueButtons(); // Recreate all buttons to clear visual state
-            log('All cue markers cleared');
+            console.log('clearAllCues called, current cues:', state.cues.size);
+            state.cues = new Set(); // Create fresh Set instead of clear()
+            // Remove set class from all existing buttons
+            document.querySelectorAll('.cue-btn.set').forEach(btn => {
+                btn.classList.remove('set');
+            });
+            log('All cue markers cleared (local state only)');
+            console.log('After clear, cues:', state.cues.size);
         }
 
         // =====================================================================
