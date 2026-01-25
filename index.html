@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TP-7 MIDI Controller</title>
+    <title>🎛️ TP-7 MIDI</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
     <style>
         :root {
             --bg: #1a1a1a;
@@ -1229,7 +1230,7 @@
     <div class="container">
         <header>
             <h1><span>TP-7</span> MIDI Controller</h1>
-            <p class="subtitle">Web MIDI interface for Teenage Engineering TP-7</p>
+            <p class="subtitle">USB & Bluetooth MIDI controller for Teenage Engineering TP-7</p>
             <div class="header-buttons">
                 <button id="hotkey-btn" class="hotkey-toggle" title="Keyboard Shortcuts">⌨️ Keys</button>
                 <button id="edit-layout-toggle" class="edit-toggle">✏️ Layout</button>
@@ -1554,7 +1555,7 @@
             CENTER: 64,
             ON: 127,
             OFF: 0,
-            PITCH_CENTER: 8192,
+            PITCH_OFFSET: 8192,  // Added to signed value to get unsigned MIDI pitch bend
             PITCH_MIN: -8192,
             PITCH_MAX: 8191,
         };
@@ -1651,7 +1652,7 @@
         }
 
         function sendPitchBend(value, channel = 1) {
-            const bent = value + MIDI.PITCH_CENTER;
+            const bent = value + MIDI.PITCH_OFFSET;
             const lsb = bent & 0x7F;
             const msb = (bent >> 7) & 0x7F;
             const status = 0xE0 | (channel - 1);
@@ -2335,10 +2336,10 @@
                 let multiplier;
                 if (pitch < 0) {
                     // PITCH_MIN -> 0.25, 0 -> 1
-                    multiplier = 1 + (pitch / MIDI.PITCH_CENTER) * 0.75;
+                    multiplier = 1 + (pitch / MIDI.PITCH_OFFSET) * 0.75;
                 } else {
                     // 0 -> 1, PITCH_MAX -> 2
-                    multiplier = 1 + (pitch / MIDI.PITCH_CENTER);
+                    multiplier = 1 + (pitch / MIDI.PITCH_OFFSET);
                 }
                 const multiplierStr = `x${multiplier.toFixed(2)}`;
 
@@ -2367,7 +2368,6 @@
                 setPitch(parseInt(pitchSlider.value));
             });
 
-            // Pitch preset buttons
             // Pitch preset buttons
             document.querySelectorAll('.pitch-preset').forEach(btn => {
                 btn.addEventListener('click', () => {
