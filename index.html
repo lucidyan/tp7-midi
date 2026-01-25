@@ -2249,6 +2249,12 @@
                     document.getElementById('pitch-manual').value = PLAYBACK_STOP_PITCH;
                     updatePitchDisplay(PLAYBACK_STOP_PITCH);
                     sendPitchBend(PLAYBACK_STOP_PITCH);
+                } else {
+                    // Reset pitch to 0
+                    document.getElementById('pitch-bend').value = 0;
+                    document.getElementById('pitch-manual').value = 0;
+                    updatePitchDisplay(0);
+                    sendPitchBend(0);
                 }
             });
 
