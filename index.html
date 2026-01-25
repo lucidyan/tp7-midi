@@ -1486,7 +1486,7 @@
                             <span data-val="64" class="center-mark">0</span>
                             <span data-val="68">+1x</span>
                             <span data-val="80">+4x</span>
-                            <span data-val="127">+16x</span>
+                            <span data-val="127">+16x</span><!-- UI label; actual is +15.75x -->
                         </div>
                         <input type="range" id="speed-slider" min="0" max="100" value="50" step="0.1">
                     </div>
@@ -1497,7 +1497,7 @@
                         <button class="rocker-preset" data-val="64">0</button>
                         <button class="rocker-preset" data-val="68">+1x</button>
                         <button class="rocker-preset" data-val="80">+4x</button>
-                        <button class="rocker-preset" data-val="127">+16x</button>
+                        <button class="rocker-preset" data-val="127">+16x</button><!-- UI label; actual is +15.75x -->
                     </div>
                     <div class="manual-input rocker-manual">
                         <label>Manual CC18:</label>
@@ -1550,7 +1550,6 @@
         // State
         const state = {
             transport: 64,
-            recording: false,
             loopState: 'off',
             cueRecMode: false,
             cues: new Set(),
@@ -1641,13 +1640,11 @@
             // Send transport/rocker state
             sendCC(18, state.transport);
 
-            // Send loop state
-            if (state.loopState === 'in') {
-                sendCC(17, 1);
-            } else if (state.loopState === 'out') {
-                sendCC(17, 1);
-                sendCC(17, 2);
-            }
+            // Loop state NOT sent on reconnect - In/Out are position markers,
+            // we don't have the actual positions saved, only UI state.
+            // Reset UI to match unknown device state.
+            state.loopState = 'off';
+            updateLoopState('off');
 
             // Send cue rec mode
             sendCC(16, state.cueRecMode ? 127 : 0);
@@ -1736,10 +1733,7 @@
                 rockerSpeed = speedMult > 0 ? `+${speedMult.toFixed(2)}x` : `${speedMult.toFixed(2)}x`;
             }
 
-            if (state.recording) {
-                stateName = '⏺ Rec';
-                stateClass = 'recording';
-            } else if (value === 64) {
+            if (value === 64) {
                 stateName = '⏹ Stop';
                 stateClass = 'stopped';
             } else if (value < 64) {
@@ -1766,6 +1760,8 @@
                 updatePitchDisplay(PLAYBACK_STOP_PITCH);
             }
             updateTransportState(value);
+            // Update manual input
+            document.getElementById('rocker-manual').value = value;
         }
 
         // =====================================================================
@@ -2308,12 +2304,7 @@
             function setPitch(pitch) {
                 pitch = Math.max(-8192, Math.min(8191, pitch));
                 pitchSlider.value = pitch;
-                updatePitchDisplay(pitch);
-                sendPitchBend(pitch);
-            }
-
-            pitchSlider.addEventListener('input', () => {
-                const pitch = parseInt(pitchSlider.value);
+                document.getElementById('pitch-manual').value = pitch;
                 updatePitchDisplay(pitch);
                 sendPitchBend(pitch);
                 // Update button active states
@@ -2325,6 +2316,10 @@
                 if (pitch !== PLAYBACK_STOP_PITCH) {
                     document.getElementById('playmode-comp').checked = false;
                 }
+            }
+
+            pitchSlider.addEventListener('input', () => {
+                setPitch(parseInt(pitchSlider.value));
             });
 
             // Pitch preset buttons
@@ -2378,28 +2373,6 @@
                 }
             });
 
-            // Update manual inputs on transport/pitch changes
-            const origSetTransport = setTransport;
-            setTransport = function(value) {
-                origSetTransport(value);
-                document.getElementById('rocker-manual').value = value;
-            };
-
-            const origSetPitch = setPitch;
-            setPitch = function(pitch) {
-                origSetPitch(pitch);
-                document.getElementById('pitch-manual').value = pitch;
-                // Update button active states
-                document.querySelectorAll('.pitch-preset').forEach(btn => {
-                    const btnPitch = parseInt(btn.dataset.pitch);
-                    btn.classList.toggle('active', btnPitch === pitch);
-                });
-                // Turn off compensation if pitch changed from stop value
-                if (pitch !== PLAYBACK_STOP_PITCH) {
-                    document.getElementById('playmode-comp').checked = false;
-                }
-            };
-
             // Pitch scale markers
             document.querySelectorAll('.pitch-scale span').forEach(marker => {
                 marker.addEventListener('click', () => {
@@ -2441,12 +2414,14 @@
             // Cue count control
             document.getElementById('cue-count-apply').addEventListener('click', () => {
                 const input = document.getElementById('cue-count');
-                const count = parseInt(input.value);
-                if (count >= 8 && count <= 128) {
-                    state.cueCount = count;
-                    createCueButtons();
-                    log(`Cue count set to ${count}`);
-                }
+                let count = parseInt(input.value);
+                // Round to nearest multiple of 8
+                count = Math.round(count / 8) * 8;
+                count = Math.max(8, Math.min(128, count));
+                input.value = count;
+                state.cueCount = count;
+                createCueButtons();
+                log(`Cue count set to ${count}`);
             });
 
             // Initialize states
@@ -2468,7 +2443,7 @@
             document.getElementById('clear-state-btn').addEventListener('click', () => {
                 if (confirm('Clear all saved state (layout, mixer, gain settings)?')) {
                     localStorage.removeItem('tp7-control-state');
-                    localStorage.removeItem('tp7-section-order');
+                    localStorage.removeItem('tp7-layout-order');
                     location.reload();
                 }
             });
@@ -2567,7 +2542,6 @@
             function saveControlState() {
                 const controlState = {
                     transport: state.transport,
-                    recording: state.recording,
                     loopState: state.loopState,
                     cueRecMode: state.cueRecMode,
                     cues: Array.from(state.cues),
@@ -2644,36 +2618,35 @@
                         }
                     }
 
-                    // Restore mixer (after createChannelStrips)
-                    setTimeout(() => {
-                        if (controlState.mixerVolumes) {
-                            document.querySelectorAll('.channel-strip').forEach((strip, i) => {
-                                if (controlState.mixerVolumes[i] !== undefined) {
-                                    const slider = strip.querySelector('.vol-slider');
-                                    const valueDisplay = strip.querySelector('.ch-value');
-                                    slider.value = controlState.mixerVolumes[i];
-                                    const pct = Math.round((slider.value / 127) * 100);
-                                    valueDisplay.textContent = pct + '%';
-                                }
-                                if (controlState.mixerMutes && controlState.mixerMutes[i]) {
-                                    const muteBtn = strip.querySelector('.mute-btn');
-                                    muteBtn.classList.add('active');
-                                    muteBtn.textContent = '🔊 Unmute';
-                                }
-                            });
-                        }
+                    // Restore mixer (elements created by createChannelStrips before this runs)
+                    if (controlState.mixerVolumes) {
+                        document.querySelectorAll('.channel-strip').forEach((strip, i) => {
+                            if (controlState.mixerVolumes[i] !== undefined) {
+                                const slider = strip.querySelector('.vol-slider');
+                                const valueDisplay = strip.querySelector('.ch-value');
+                                slider.value = controlState.mixerVolumes[i];
+                                const pct = Math.round((slider.value / 127) * 100);
+                                valueDisplay.textContent = pct + '%';
+                            }
+                            if (controlState.mixerMutes && controlState.mixerMutes[i]) {
+                                const muteBtn = strip.querySelector('.mute-btn');
+                                muteBtn.classList.add('active');
+                                muteBtn.textContent = '🔊 Unmute';
+                            }
+                        });
+                    }
 
-                        if (controlState.inputGains) {
-                            document.querySelectorAll('.gain-slider').forEach((slider, i) => {
-                                if (controlState.inputGains[i] !== undefined) {
-                                    slider.value = controlState.inputGains[i];
-                                    const valueDisplay = slider.closest('.gain-control').querySelector('.gain-value');
-                                    const db = Math.round((slider.value / 127) * 42);
-                                    valueDisplay.textContent = db + 'dB';
-                                }
-                            });
-                        }
-                    }, 100);
+                    // Restore input gains (elements created by createGainControls before this runs)
+                    if (controlState.inputGains) {
+                        document.querySelectorAll('.gain-slider').forEach((slider, i) => {
+                            if (controlState.inputGains[i] !== undefined) {
+                                slider.value = controlState.inputGains[i];
+                                const valueDisplay = slider.closest('.gain-control').querySelector('.gain-value');
+                                const db = Math.round((slider.value / 127) * 42);
+                                valueDisplay.textContent = db + 'dB';
+                            }
+                        });
+                    }
 
                 } catch (e) {
                     console.error('Failed to load control state:', e);
