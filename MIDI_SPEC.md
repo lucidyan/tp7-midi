@@ -33,7 +33,7 @@ Messages you can send TO the TP-7 to control it:
 | Note On | 0-127 | any | Cue marker trigger |
 | Note Off | 0-127 | any | Cue marker trigger |
 | Pitch Bend | ±8192 | any | Playback speed modifier |
-| CC 7 | 0-127 | 1-6 | Mix volume per channel |
+| CC 7 | 0-127 | 1-6 | Mix volume per stereo track |
 | CC 9 | 0-127 | 1-3 | Input gain per channel (0-42dB) |
 | CC 14 | on/off | any | Arm recording |
 | CC 16 | on/off | any | Cue rec mode enable |
@@ -228,6 +228,38 @@ PLAYBACK MODE:
 
 ---
 
+## Track Mixer (CC 7 / CC 120)
+
+### 6 Stereo Tracks
+
+TP-7 has **6 stereo tracks**, each controlled via MIDI channel 1-6:
+
+| MIDI Channel | Track |
+|--------------|-------|
+| 1 | Track 1 (stereo) |
+| 2 | Track 2 (stereo) |
+| 3 | Track 3 (stereo) |
+| 4 | Track 4 (stereo) |
+| 5 | Track 5 (stereo) |
+| 6 | Track 6 (stereo) |
+
+### USB vs Internal Capacity
+
+- **USB Output:** Only tracks 1-3 are output via USB (what you see in a DAW)
+- **Internal Mixing:** TP-7 can mix all 6 stereo tracks internally
+
+### ⚠️ Mixer Reset Behavior
+
+**Mixer levels and mutes reset when track is changed via cue or loop!**
+
+When a cue is triggered or loop cycles to a different track:
+- All volume levels reset to default (100%)
+- All mute states are cleared
+
+This is a known limitation - there's no way to prevent this via MIDI.
+
+---
+
 ## Summary of Gotchas
 
 1. **CC17 (Loop)** is a state machine - must set In before Out, can only exit with Off
@@ -240,3 +272,4 @@ PLAYBACK MODE:
 8. **3 speed controls** - SPD (no MIDI access!), Rocker (CC18), Pitch Bend - all multiply during playback
 9. **SPD/Pitch Bend disconnect (BUG)** - Internal MIDI speed (Pitch Bend) should update SPD on screen but doesn't - they should be the same control
 10. **Recording via MIDI is useless** - CC14 arms recording BUT you can't control playback in record mode via MIDI (only rocker emulation). Use physical controls for recording.
+11. **Mixer resets on track change** - Volume levels and mutes reset when track is changed via cue or loop trigger

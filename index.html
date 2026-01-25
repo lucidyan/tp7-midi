@@ -81,7 +81,7 @@
             display: none !important;
         }
 
-        /* Scale with Ticks - Aligned to slider */
+        /* Scale with Ticks - Aligned to slider thumb */
         .scale-with-ticks {
             position: relative;
             height: 28px;
@@ -89,6 +89,15 @@
             color: var(--text-dim);
             margin-bottom: 12px;
         }
+
+        /* Rocker scale: adjusted for thumb offset */
+        .rocker-scale span:nth-child(1) { left: 0%; }
+        .rocker-scale span:nth-child(2) { left: 28%; }
+        .rocker-scale span:nth-child(3) { left: 40%; }
+        .rocker-scale span:nth-child(4) { left: 50%; }
+        .rocker-scale span:nth-child(5) { left: 60%; }
+        .rocker-scale span:nth-child(6) { left: 69%; }
+        .rocker-scale span:nth-child(7) { left: 100%; }
 
         @media (max-width: 500px) {
             .scale-with-ticks {
@@ -319,6 +328,13 @@
             gap: 10px;
         }
 
+        .small-btn {
+            font-size: 0.7rem;
+            padding: 4px 8px;
+            margin-left: auto;
+            text-transform: none;
+        }
+
         /* Transport State Indicator */
         .transport-state {
             display: inline-flex;
@@ -357,9 +373,31 @@
             color: var(--danger);
         }
 
-        .transport-state.cue-play {
-            background: rgba(156, 39, 176, 0.2);
-            color: var(--cue-set);
+
+        /* Playback Stop Compensation */
+        .playmode-compensation {
+            background: rgba(255, 152, 0, 0.1);
+            border: 1px solid var(--warning);
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 15px;
+            font-size: 0.8rem;
+        }
+
+        .playmode-compensation label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .playmode-compensation small {
+            display: block;
+            margin-top: 4px;
+            margin-left: 24px;
+            color: var(--text-dim);
+            font-size: 0.7rem;
         }
 
         /* Transport Controls */
@@ -474,15 +512,25 @@
         /* Sliders */
         input[type="range"] {
             width: 100%;
-            height: 8px;
+            height: 28px;
             -webkit-appearance: none;
             appearance: none;
-            background: var(--border);
-            border-radius: 4px;
+            background: transparent;
             outline: none;
             touch-action: none;
-            padding: 10px 0;
             margin: 0;
+        }
+
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        input[type="range"]::-moz-range-track {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
         }
 
         input[type="range"]::-webkit-slider-thumb {
@@ -494,6 +542,7 @@
             background: var(--accent);
             cursor: pointer;
             transition: transform 0.1s;
+            margin-top: -10px;
         }
 
         input[type="range"]::-webkit-slider-thumb:hover {
@@ -765,39 +814,10 @@
             font-size: 0.75rem;
         }
 
-        .pitch-buttons button[data-pitch="0"],
-        .pitch-buttons button[data-val="64"] {
+        .pitch-buttons button.active {
             background: var(--accent);
             border-color: var(--accent);
             color: white;
-        }
-
-        /* Cue Play Mode Warning */
-        .cue-play-warning {
-            background: rgba(156, 39, 176, 0.15);
-            border: 1px solid var(--cue-set);
-            border-radius: 6px;
-            padding: 12px 14px;
-            margin-bottom: 15px;
-            font-size: 0.8rem;
-            color: var(--cue-set);
-            display: none;
-        }
-
-        .cue-play-warning.visible {
-            display: block;
-        }
-
-        .cue-play-warning strong {
-            display: block;
-            margin-bottom: 4px;
-        }
-
-        .cue-play-warning code {
-            background: rgba(156, 39, 176, 0.2);
-            padding: 1px 4px;
-            border-radius: 3px;
-            font-family: var(--font-mono);
         }
 
         /* Cue Section */
@@ -897,7 +917,7 @@
 
         .cue-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 5px;
         }
 
@@ -1023,6 +1043,15 @@
 
         .not-supported a {
             color: var(--accent);
+        }
+
+        .not-supported.dismissible {
+            position: relative;
+            padding-right: 40px;
+        }
+
+        .not-supported.dismissed {
+            display: none !important;
         }
 
         footer {
@@ -1234,7 +1263,8 @@
             </div>
         </div>
 
-        <div id="midi-not-supported" class="not-supported" style="display: none;">
+        <div id="dismiss-midi-not-supported" class="not-supported dismissible" style="display: none;">
+            <button class="dismiss-btn" title="Dismiss">✕</button>
             <h2>Web MIDI Not Supported</h2>
             <p>Your browser doesn't support USB MIDI. Try <strong>Bluetooth</strong> tab instead!</p>
             <p><strong>iOS users:</strong> Use <a href="https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055" target="_blank" style="color: var(--accent);">Bluefy Browser</a> for Bluetooth MIDI support.</p>
@@ -1379,7 +1409,17 @@
 
             <!-- Mixer -->
             <div id="section-mixer" class="section">
-                <h2>Mixer <small>CC 7 / CC 120</small></h2>
+                <h2>Track Mixer <small>CC 7 / CC 120</small> <button id="mixer-send-all" class="small-btn" title="Send all fader values to TP-7">📤 Send All</button> <button id="mixer-reset" class="small-btn" title="Reset all faders to 100% and unmute">🔄 Reset</button></h2>
+                <div id="dismiss-mixer-info" class="info-box dismissible">
+                    <span class="icon">ℹ️</span>
+                    <span><strong>6 stereo tracks</strong> controllable via MIDI. USB only outputs tracks 1-3, but TP-7 can mix all 6 internally.</span>
+                    <button class="dismiss-btn" title="Dismiss">✕</button>
+                </div>
+                <div id="dismiss-mixer-warning" class="warning-box dismissible">
+                    <span class="icon">⚠️</span>
+                    <span><strong>Resets on track change!</strong> Mixer levels and mutes reset when track is changed via cue or loop.</span>
+                    <button class="dismiss-btn" title="Dismiss">✕</button>
+                </div>
                 <div class="channel-strips" id="channel-strips">
                     <!-- Generated by JS -->
                 </div>
@@ -1401,11 +1441,12 @@
                     <span><strong>Playback Mode (After Play or Cue trigger): CAN'T STOP!</strong> Value 64 no longer stops - center shifts! 0-60 = reverse, 61-127 = forward. Slowest at 60/61. To stop: CC18=60 + Pitch Bend=+708.</span>
                     <button class="dismiss-btn" title="Dismiss">✕</button>
                 </div>
-                <div id="cue-play-warning" class="cue-play-warning">
-                    <strong>⚠️ Cue Playback Mode Active</strong>
-                    In cue playback mode, CC18 becomes <em>relative speed</em> with NO stop position!
-                    <code>0-60</code> = reverse (60 slowest), <code>61-127</code> = forward (61 slowest).
-                    Center point shifts - use pitch bend or trigger new cue to control.
+                <div class="playmode-compensation">
+                    <label>
+                        <input type="checkbox" id="playmode-comp">
+                        <span>Playback Stop Compensation</span>
+                    </label>
+                    <small>When ON, Stop also sends Pitch Bend +708 to force stop during playback/cue mode</small>
                 </div>
                 <div class="transport-buttons">
                     <button class="transport-btn" id="btn-super-rew" data-speed="0" title="Super Fast Rewind">
@@ -1438,18 +1479,16 @@
                         <span class="speed-pitch" id="speed-value">(MIDI value: 64)</span>
                     </div>
                     <div class="slider-with-markers">
-                        <div class="scale-with-ticks" id="rocker-scale">
-                            <span data-val="0" style="left: 0%">-16x</span>
-                            <span data-val="48" style="left: 37.8%">-4x</span>
-                            <span data-val="56" style="left: 44.1%">-2x</span>
-                            <span data-val="60" style="left: 47.2%">-1x</span>
-                            <span data-val="64" style="left: 50.4%" class="center-mark">0</span>
-                            <span data-val="68" style="left: 53.5%">+1x</span>
-                            <span data-val="72" style="left: 56.7%">+2x</span>
-                            <span data-val="80" style="left: 63%">+4x</span>
-                            <span data-val="127" style="left: 100%">+16x</span>
+                        <div class="scale-with-ticks rocker-scale" id="rocker-scale">
+                            <span data-val="0">-16x</span>
+                            <span data-val="48">-4x</span>
+                            <span data-val="60">-1x</span>
+                            <span data-val="64" class="center-mark">0</span>
+                            <span data-val="68">+1x</span>
+                            <span data-val="80">+4x</span>
+                            <span data-val="127">+16x</span>
                         </div>
-                        <input type="range" id="speed-slider" min="0" max="127" value="64">
+                        <input type="range" id="speed-slider" min="0" max="100" value="50" step="0.1">
                     </div>
                     <div class="pitch-buttons">
                         <button class="rocker-preset" data-val="0">-16x</button>
@@ -1460,9 +1499,9 @@
                         <button class="rocker-preset" data-val="80">+4x</button>
                         <button class="rocker-preset" data-val="127">+16x</button>
                     </div>
-                    <div class="manual-input">
+                    <div class="manual-input rocker-manual">
                         <label>Manual CC18:</label>
-                        <input type="number" id="rocker-manual" min="0" max="127" value="64" style="width: 60px;">
+                        <input type="number" id="rocker-manual" min="0" max="127" value="64">
                         <button id="rocker-manual-apply">Set</button>
                     </div>
                 </div>
@@ -1505,6 +1544,9 @@
         let bleMidiCharacteristic = null;
         let connectionType = null; // 'usb' or 'ble'
 
+        // Playback stop compensation pitch value
+        const PLAYBACK_STOP_PITCH = 708;
+
         // State
         const state = {
             transport: 64,
@@ -1513,14 +1555,12 @@
             cueRecMode: false,
             cues: new Set(),
             cueCount: 8,
-            cuePlayActive: false,
-            lastCuePlayed: null,
         };
 
         // Check Web MIDI support (for USB tab)
         if (!navigator.requestMIDIAccess) {
             // Don't hide app - BLE might still work
-            document.getElementById('midi-not-supported').style.display = 'block';
+            document.getElementById('dismiss-midi-not-supported').style.display = 'block';
         }
 
         // Check Web Bluetooth support (for BLE tab)
@@ -1576,6 +1616,45 @@
             }
         }
 
+        function sendAllState() {
+            log('Sending all state to device...');
+
+            // Send mixer state (6 stereo tracks)
+            document.querySelectorAll('.channel-strip').forEach((strip, i) => {
+                const track = i + 1;
+                const slider = strip.querySelector('.vol-slider');
+                const muteBtn = strip.querySelector('.mute-btn');
+                const muted = muteBtn.classList.contains('active');
+                sendCC(7, parseInt(slider.value), track);
+                sendCC(120, muted ? 127 : 0, track);
+            });
+
+            // Send input gains
+            document.querySelectorAll('.gain-slider').forEach((slider, i) => {
+                sendCC(9, parseInt(slider.value), i + 1);
+            });
+
+            // Send pitch bend
+            const pitchValue = parseInt(document.getElementById('pitch-bend').value);
+            sendPitchBend(pitchValue);
+
+            // Send transport/rocker state
+            sendCC(18, state.transport);
+
+            // Send loop state
+            if (state.loopState === 'in') {
+                sendCC(17, 1);
+            } else if (state.loopState === 'out') {
+                sendCC(17, 1);
+                sendCC(17, 2);
+            }
+
+            // Send cue rec mode
+            sendCC(16, state.cueRecMode ? 127 : 0);
+
+            log('All state sent');
+        }
+
         // =====================================================================
         // Logging
         // =====================================================================
@@ -1596,14 +1675,51 @@
         // Transport State
         // =====================================================================
 
+        // Logarithmic slider: slider 0-100% maps to CC values
+        // Ticks adjusted for thumb offset
+        const ROCKER_MAP = [
+            { pct: 0, cc: 0 },
+            { pct: 28, cc: 48 },
+            { pct: 40, cc: 60 },
+            { pct: 50, cc: 64 },
+            { pct: 60, cc: 68 },
+            { pct: 69, cc: 80 },
+            { pct: 100, cc: 127 }
+        ];
+
+        function sliderToCC(pct) {
+            for (let i = 0; i < ROCKER_MAP.length - 1; i++) {
+                if (pct <= ROCKER_MAP[i + 1].pct) {
+                    const t = (pct - ROCKER_MAP[i].pct) / (ROCKER_MAP[i + 1].pct - ROCKER_MAP[i].pct);
+                    return Math.round(ROCKER_MAP[i].cc + t * (ROCKER_MAP[i + 1].cc - ROCKER_MAP[i].cc));
+                }
+            }
+            return 127;
+        }
+
+        function ccToSlider(cc) {
+            for (let i = 0; i < ROCKER_MAP.length - 1; i++) {
+                if (cc <= ROCKER_MAP[i + 1].cc) {
+                    const t = (cc - ROCKER_MAP[i].cc) / (ROCKER_MAP[i + 1].cc - ROCKER_MAP[i].cc);
+                    return ROCKER_MAP[i].pct + t * (ROCKER_MAP[i + 1].pct - ROCKER_MAP[i].pct);
+                }
+            }
+            return 100;
+        }
+
         function updateTransportState(value) {
             state.transport = value;
 
-            document.getElementById('speed-slider').value = value;
+            document.getElementById('speed-slider').value = ccToSlider(value);
             document.getElementById('speed-value').textContent = `(MIDI value: ${value})`;
 
             document.querySelectorAll('.transport-btn[data-speed]').forEach(btn => {
                 btn.classList.toggle('active', parseInt(btn.dataset.speed) === value);
+            });
+
+            // Update rocker preset buttons
+            document.querySelectorAll('.rocker-preset').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.val) === value);
             });
 
             const stateEl = document.getElementById('transport-state');
@@ -1612,24 +1728,17 @@
 
             // Calculate rocker speed multiplier
             // Formula: speed = (value - 64) / 4
-            // 64 = 0x (stop), 68 = +1x, 60 = -1x, 0 = -16x, 127 = +16x
+            // 64 = 0x (stop), 68 = +1x, 60 = -1x, 0 = -16x, 127 = +15.75x
             const speedMult = (value - 64) / 4;
             if (value === 64) {
                 rockerSpeed = '0x';
-            } else if (Number.isInteger(speedMult)) {
-                // Whole number: show as integer
-                rockerSpeed = speedMult > 0 ? `+${speedMult}x` : `${speedMult}x`;
             } else {
-                // Fractional: show one decimal place
-                rockerSpeed = speedMult > 0 ? `+${speedMult.toFixed(1)}x` : `${speedMult.toFixed(1)}x`;
+                rockerSpeed = speedMult > 0 ? `+${speedMult.toFixed(2)}x` : `${speedMult.toFixed(2)}x`;
             }
 
             if (state.recording) {
                 stateName = '⏺ Rec';
                 stateClass = 'recording';
-            } else if (state.cuePlayActive) {
-                stateName = `🎯 Cue ${state.lastCuePlayed}`;
-                stateClass = 'cue-play';
             } else if (value === 64) {
                 stateName = '⏹ Stop';
                 stateClass = 'stopped';
@@ -1644,16 +1753,18 @@
             stateEl.textContent = stateName;
             stateEl.className = 'transport-state ' + stateClass;
             if (rockerStateEl) rockerStateEl.textContent = rockerSpeed;
-
-            // Show/hide cue play warning
-            const cueWarning = document.getElementById('cue-play-warning');
-            if (cueWarning) {
-                cueWarning.classList.toggle('visible', state.cuePlayActive);
-            }
         }
 
         function setTransport(value) {
             sendCC(18, value);
+            // Playback stop compensation: send pitch bend to force stop
+            if (value === 64 && document.getElementById('playmode-comp').checked) {
+                sendPitchBend(PLAYBACK_STOP_PITCH);
+                // Also update pitch slider UI
+                const pitchSlider = document.getElementById('pitch-bend');
+                pitchSlider.value = PLAYBACK_STOP_PITCH;
+                updatePitchDisplay(PLAYBACK_STOP_PITCH);
+            }
             updateTransportState(value);
         }
 
@@ -1732,12 +1843,13 @@
             const container = document.getElementById('channel-strips');
             container.innerHTML = '';
 
-            for (let ch = 1; ch <= 6; ch++) {
+            // 6 stereo tracks controlled via MIDI channels 1-6
+            for (let track = 1; track <= 6; track++) {
                 const strip = document.createElement('div');
                 strip.className = 'channel-strip';
-                strip.dataset.channel = ch;
+                strip.dataset.channel = track;
                 strip.innerHTML = `
-                    <div class="ch-label">CH ${ch}</div>
+                    <div class="ch-label">Track ${track}</div>
                     <div class="ch-value">100%</div>
                     <div class="fader-container">
                         <div class="fader-scale">
@@ -1762,14 +1874,16 @@
                 slider.addEventListener('input', () => {
                     const pct = Math.round((slider.value / 127) * 100);
                     valueDisplay.textContent = pct + '%';
-                    sendCC(7, parseInt(slider.value), ch);
+                    sendCC(7, parseInt(slider.value), track);
                 });
 
                 muteBtn.addEventListener('click', () => {
                     muteBtn.classList.toggle('active');
                     const muted = muteBtn.classList.contains('active');
                     muteBtn.textContent = muted ? '🔊 Unmute' : '🔇 Mute';
-                    sendCC(120, muted ? 127 : 0, ch);
+                    sendCC(120, muted ? 127 : 0, track);
+                    // Also send fader value to sync volume
+                    sendCC(7, parseInt(slider.value), track);
                 });
             }
         }
@@ -1878,18 +1992,7 @@
                 // Recording a cue marker
                 state.cues.add(note);
                 btn.classList.add('set');
-            } else {
-                // Playing from cue - set cue play state
-                state.cuePlayActive = true;
-                state.lastCuePlayed = note;
-                updateTransportState(state.transport);
             }
-        }
-
-        function stopCuePlay() {
-            state.cuePlayActive = false;
-            state.lastCuePlayed = null;
-            updateTransportState(state.transport);
         }
 
         function clearAllCues() {
@@ -2086,6 +2189,36 @@
             createGainControls();
             createCueButtons();
 
+            // Send All mixer values
+            document.getElementById('mixer-send-all').addEventListener('click', () => {
+                document.querySelectorAll('.channel-strip').forEach((strip, i) => {
+                    const ch = i + 1;
+                    const slider = strip.querySelector('.vol-slider');
+                    const muteBtn = strip.querySelector('.mute-btn');
+                    const muted = muteBtn.classList.contains('active');
+                    sendCC(7, parseInt(slider.value), ch);
+                    sendCC(120, muted ? 127 : 0, ch);
+                });
+                log('Sent all mixer values');
+            });
+
+            // Reset mixer
+            document.getElementById('mixer-reset').addEventListener('click', () => {
+                document.querySelectorAll('.channel-strip').forEach((strip, i) => {
+                    const ch = i + 1;
+                    const slider = strip.querySelector('.vol-slider');
+                    const valueDisplay = strip.querySelector('.ch-value');
+                    const muteBtn = strip.querySelector('.mute-btn');
+                    slider.value = 127;
+                    valueDisplay.textContent = '100%';
+                    muteBtn.classList.remove('active');
+                    muteBtn.textContent = '🔇 Mute';
+                    sendCC(7, 127, ch);
+                    sendCC(120, 0, ch);
+                });
+                log('Mixer reset to defaults');
+            });
+
             // Connection tabs
             document.querySelectorAll('.conn-tab').forEach(tab => {
                 tab.addEventListener('click', () => {
@@ -2112,10 +2245,10 @@
                 });
             });
 
-            // Speed slider
+            // Speed slider (logarithmic 0-100% -> CC 0-127)
             const speedSlider = document.getElementById('speed-slider');
             speedSlider.addEventListener('input', () => {
-                setTransport(parseInt(speedSlider.value));
+                setTransport(sliderToCC(parseFloat(speedSlider.value)));
             });
 
             // Speed slider markers (old class, keeping for compatibility)
@@ -2163,11 +2296,23 @@
                 const pitch = parseInt(pitchSlider.value);
                 updatePitchDisplay(pitch);
                 sendPitchBend(pitch);
+                // Update button active states
+                document.querySelectorAll('.pitch-preset').forEach(btn => {
+                    const btnPitch = parseInt(btn.dataset.pitch);
+                    btn.classList.toggle('active', btnPitch === pitch);
+                });
+                // Turn off compensation if pitch changed from stop value
+                if (pitch !== PLAYBACK_STOP_PITCH) {
+                    document.getElementById('playmode-comp').checked = false;
+                }
             });
 
             // Pitch preset buttons
+            // Pitch preset buttons
             document.querySelectorAll('.pitch-preset').forEach(btn => {
                 btn.addEventListener('click', () => {
+                    document.querySelectorAll('.pitch-preset').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
                     setPitch(parseInt(btn.dataset.pitch));
                 });
             });
@@ -2175,9 +2320,15 @@
             // Rocker preset buttons
             document.querySelectorAll('.rocker-preset').forEach(btn => {
                 btn.addEventListener('click', () => {
+                    document.querySelectorAll('.rocker-preset').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
                     setTransport(parseInt(btn.dataset.val));
                 });
             });
+
+            // Set default active buttons
+            document.querySelector('.pitch-preset[data-pitch="0"]')?.classList.add('active');
+            document.querySelector('.rocker-preset[data-val="64"]')?.classList.add('active');
 
             // Manual pitch input
             document.getElementById('pitch-manual-apply').addEventListener('click', () => {
@@ -2218,6 +2369,15 @@
             setPitch = function(pitch) {
                 origSetPitch(pitch);
                 document.getElementById('pitch-manual').value = pitch;
+                // Update button active states
+                document.querySelectorAll('.pitch-preset').forEach(btn => {
+                    const btnPitch = parseInt(btn.dataset.pitch);
+                    btn.classList.toggle('active', btnPitch === pitch);
+                });
+                // Turn off compensation if pitch changed from stop value
+                if (pitch !== PLAYBACK_STOP_PITCH) {
+                    document.getElementById('playmode-comp').checked = false;
+                }
             };
 
             // Pitch scale markers
@@ -2267,13 +2427,6 @@
                     createCueButtons();
                     log(`Cue count set to ${count}`);
                 }
-            });
-
-            // Stop cue play when transport changes
-            document.querySelectorAll('.transport-btn[data-speed]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    stopCuePlay();
-                });
             });
 
             // Initialize states
@@ -2400,6 +2553,7 @@
                     cues: Array.from(state.cues),
                     cueCount: state.cueCount,
                     pitchBend: parseInt(document.getElementById('pitch-bend').value),
+                    playmodeComp: document.getElementById('playmode-comp').checked,
                     mixerVolumes: [],
                     mixerMutes: [],
                     inputGains: []
@@ -2460,6 +2614,16 @@
                         document.getElementById('cue-rec-off').classList.remove('active');
                     }
 
+                    // Restore playmode compensation
+                    if (controlState.playmodeComp !== undefined) {
+                        document.getElementById('playmode-comp').checked = controlState.playmodeComp;
+                        // If compensation is ON, set pitch to stop value
+                        if (controlState.playmodeComp) {
+                            document.getElementById('pitch-bend').value = PLAYBACK_STOP_PITCH;
+                            updatePitchDisplay(PLAYBACK_STOP_PITCH);
+                        }
+                    }
+
                     // Restore mixer (after createChannelStrips)
                     setTimeout(() => {
                         if (controlState.mixerVolumes) {
@@ -2514,6 +2678,7 @@
                 document.getElementById('loop-toggle').addEventListener('click', debouncedSave);
                 document.getElementById('cue-grid').addEventListener('click', debouncedSave);
                 document.getElementById('cue-count').addEventListener('change', debouncedSave);
+                document.getElementById('playmode-comp').addEventListener('change', debouncedSave);
             }
 
             // Load saved layout and state on init
@@ -2560,7 +2725,6 @@
                         setTransport(68);
                     } else {
                         setTransport(64);
-                        stopCuePlay();
                     }
                     e.preventDefault();
                 }
