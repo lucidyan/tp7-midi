@@ -17,6 +17,66 @@ Works on phones, tablets, and computers - right in your browser.
 
 ---
 
+## Troubleshooting
+
+### Browsers (READ THIS FIRST)
+
+#### iOS (iPhone / iPad) limitations — why only Bluefy works
+- **Safari on iOS does not support Web Bluetooth** (needed for Bluetooth control) and **does not support Web MIDI** (needed for USB control).
+- **All “normal” iOS browsers** (Safari/Chrome/Edge/Firefox) are still limited by iOS and won’t work for TP7-MIDI Bluetooth/USB in the browser.
+- **Bluefy** is the one iOS browser that provides **Web BLE (Web Bluetooth) support**, so it can connect to the TP-7 over **Bluetooth**.
+- **USB/MIDI on iOS:** not possible in the browser (Web MIDI isn’t supported on iOS). Also, very old “Web MIDI browser” apps from ~2016 are outdated and won’t work for this.
+
+#### Android — which browsers work?
+Use a Chromium-based browser that supports **Web Bluetooth** (for Bluetooth) and **Web MIDI** (for USB):
+- ✅ **Chrome**
+- ✅ **Edge**
+- ✅ **Samsung Internet**
+- ✅ **Opera**
+- ❌ **Firefox for Android** (no Web Bluetooth / Web MIDI for this use case)
+
+If Bluetooth scanning finds **zero devices** on Android:
+- Turn **Bluetooth ON**
+- Turn **Location Services ON**
+- Allow the browser “Nearby devices” / Bluetooth permissions (and Location permission if your Android version asks)
+
+#### macOS / Windows / Linux — recommended browsers
+- ✅ **Chrome or Edge** (best-tested)
+- ✅ **Opera** (Chromium-based, usually fine)
+- ⚠️ **Firefox (desktop):** USB/MIDI *may* work, but **Bluetooth won’t** (no Web Bluetooth)
+- ⚠️ **Brave:** Web Bluetooth may be **disabled by default**. Use Chrome/Edge, or enable it:
+  1. Open `brave://flags`
+  2. Search **Bluetooth** / **Web Bluetooth**
+  3. Enable the Web Bluetooth flag(s)
+  4. Relaunch Brave
+
+### Enable Bluetooth / MIDI permissions (Desktop + Android)
+
+#### Bluetooth (Web Bluetooth)
+- Web Bluetooth requires a **secure context**: HTTPS (or `localhost` for dev).
+- Pressing **Connect** should open a **device picker**. If it doesn’t:
+  - Check the site’s permissions (don’t “Block” Bluetooth for this site)
+  - On **macOS**: System Settings → Privacy & Security → **Bluetooth** → allow your browser
+
+#### USB (Web MIDI)
+- Web MIDI also requires **HTTPS** (or `localhost`).
+- When the browser asks for MIDI access, click **Allow**.
+- If you previously blocked it: lock icon → **Site settings** → allow **MIDI devices** (wording may vary).
+
+### Android + USB cable: TP-7 not showing up (only charging)
+1. Use a USB-C cable/adapter that supports **data/OTG** (not charge-only).
+2. Plug in the TP-7.
+3. Pull down Android notifications → tap the **USB** notification (often says “Charging this device via USB”).
+4. Select **MIDI** mode.
+5. Reload the page → press **Connect** again → choose the TP-7 from the MIDI device list.
+
+### Still stuck?
+- Update the browser to the latest version.
+- Close other tabs/apps that might already be connected to TP-7 via MIDI/Bluetooth.
+- On Linux: some sandboxed Chromium builds (Snap/Flatpak) can’t see USB MIDI devices — try official Chrome or a non-sandboxed Chromium build.
+
+ ---
+ 
 ## Documentation
 
 | Document | Description |
