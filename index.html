@@ -1544,16 +1544,61 @@
         let bleMidiCharacteristic = null;
         let connectionType = null; // 'usb' or 'ble'
 
-        // Playback stop compensation pitch value
-        const PLAYBACK_STOP_PITCH = 708;
+        // =====================================================================
+        // Constants
+        // =====================================================================
+
+        const MIDI = {
+            MIN: 0,
+            MAX: 127,
+            CENTER: 64,
+            ON: 127,
+            OFF: 0,
+            PITCH_CENTER: 8192,
+            PITCH_MIN: -8192,
+            PITCH_MAX: 8191,
+        };
+
+        const TP7 = {
+            // CC Numbers
+            CC_VOLUME: 7,
+            CC_GAIN: 9,
+            CC_REC_ARM: 14,
+            CC_CUE_REC: 16,
+            CC_LOOP: 17,
+            CC_TRANSPORT: 18,
+            CC_MUTE: 120,
+
+            // Tracks
+            STEREO_TRACKS: 6,
+            INPUT_CHANNELS: 3,
+
+            // Gain
+            MAX_GAIN_DB: 42,
+
+            // Transport/Rocker speeds
+            SPEED_STOP: 64,
+            SPEED_REW_1X: 60,
+            SPEED_FWD_1X: 68,
+            SPEED_MAX_REW: 0,
+            SPEED_MAX_FWD: 127,
+
+            // Playback stop compensation
+            STOP_COMPENSATION_PITCH: 708,
+
+            // Cues
+            CUE_MIN: 8,
+            CUE_MAX: 128,
+            CUE_STEP: 8,
+        };
 
         // State
         const state = {
-            transport: 64,
+            transport: TP7.SPEED_STOP,
             loopState: 'off',
             cueRecMode: false,
             cues: new Set(),
-            cueCount: 8,
+            cueCount: TP7.CUE_MIN,
         };
 
         // Check Web MIDI support (for USB tab)
@@ -1590,7 +1635,7 @@
 
         function sendCC(cc, value, channel = 1) {
             const status = 0xB0 | (channel - 1);
-            if (sendMidi([status, cc, Math.min(127, Math.max(0, value))])) {
+            if (sendMidi([status, cc, Math.min(MIDI.MAX, Math.max(MIDI.MIN, value))])) {
                 log(`CC ${cc} = ${value} (ch ${channel})`);
             }
         }
@@ -1606,7 +1651,7 @@
         }
 
         function sendPitchBend(value, channel = 1) {
-            const bent = value + 8192;
+            const bent = value + MIDI.PITCH_CENTER;
             const lsb = bent & 0x7F;
             const msb = (bent >> 7) & 0x7F;
             const status = 0xE0 | (channel - 1);
@@ -1624,13 +1669,13 @@
                 const slider = strip.querySelector('.vol-slider');
                 const muteBtn = strip.querySelector('.mute-btn');
                 const muted = muteBtn.classList.contains('active');
-                sendCC(7, parseInt(slider.value), track);
-                sendCC(120, muted ? 127 : 0, track);
+                sendCC(TP7.CC_VOLUME, parseInt(slider.value), track);
+                sendCC(TP7.CC_MUTE, muted ? MIDI.ON : MIDI.OFF, track);
             });
 
             // Send input gains
             document.querySelectorAll('.gain-slider').forEach((slider, i) => {
-                sendCC(9, parseInt(slider.value), i + 1);
+                sendCC(TP7.CC_GAIN, parseInt(slider.value), i + 1);
             });
 
             // Send pitch bend
@@ -1638,7 +1683,7 @@
             sendPitchBend(pitchValue);
 
             // Send transport/rocker state
-            sendCC(18, state.transport);
+            sendCC(TP7.CC_TRANSPORT, state.transport);
 
             // Loop state NOT sent on reconnect - In/Out are position markers,
             // we don't have the actual positions saved, only UI state.
@@ -1647,7 +1692,7 @@
             updateLoopState('off');
 
             // Send cue rec mode
-            sendCC(16, state.cueRecMode ? 127 : 0);
+            sendCC(TP7.CC_CUE_REC, state.cueRecMode ? MIDI.ON : MIDI.OFF);
 
             log('All state sent');
         }
@@ -1675,13 +1720,13 @@
         // Logarithmic slider: slider 0-100% maps to CC values
         // Ticks adjusted for thumb offset
         const ROCKER_MAP = [
-            { pct: 0, cc: 0 },
+            { pct: 0, cc: TP7.SPEED_MAX_REW },
             { pct: 28, cc: 48 },
-            { pct: 40, cc: 60 },
-            { pct: 50, cc: 64 },
-            { pct: 60, cc: 68 },
+            { pct: 40, cc: TP7.SPEED_REW_1X },
+            { pct: 50, cc: TP7.SPEED_STOP },
+            { pct: 60, cc: TP7.SPEED_FWD_1X },
             { pct: 69, cc: 80 },
-            { pct: 100, cc: 127 }
+            { pct: 100, cc: TP7.SPEED_MAX_FWD }
         ];
 
         function sliderToCC(pct) {
@@ -1691,7 +1736,7 @@
                     return Math.round(ROCKER_MAP[i].cc + t * (ROCKER_MAP[i + 1].cc - ROCKER_MAP[i].cc));
                 }
             }
-            return 127;
+            return MIDI.MAX;
         }
 
         function ccToSlider(cc) {
@@ -1724,24 +1769,24 @@
             let stateName, stateClass, rockerSpeed;
 
             // Calculate rocker speed multiplier
-            // Formula: speed = (value - 64) / 4
+            // Formula: speed = (value - SPEED_STOP) / 4
             // 64 = 0x (stop), 68 = +1x, 60 = -1x, 0 = -16x, 127 = +15.75x
-            const speedMult = (value - 64) / 4;
-            if (value === 64) {
+            const speedMult = (value - TP7.SPEED_STOP) / 4;
+            if (value === TP7.SPEED_STOP) {
                 rockerSpeed = '0x';
             } else {
                 rockerSpeed = speedMult > 0 ? `+${speedMult.toFixed(2)}x` : `${speedMult.toFixed(2)}x`;
             }
 
-            if (value === 64) {
+            if (value === TP7.SPEED_STOP) {
                 stateName = '⏹ Stop';
                 stateClass = 'stopped';
-            } else if (value < 64) {
+            } else if (value < TP7.SPEED_STOP) {
                 stateName = '◀ Rew';
                 stateClass = 'rewinding';
             } else {
                 stateName = '▶ Fwd';
-                stateClass = value === 68 ? 'playing' : 'forwarding';
+                stateClass = value === TP7.SPEED_FWD_1X ? 'playing' : 'forwarding';
             }
 
             stateEl.textContent = stateName;
@@ -1750,14 +1795,14 @@
         }
 
         function setTransport(value) {
-            sendCC(18, value);
+            sendCC(TP7.CC_TRANSPORT, value);
             // Playback stop compensation: send pitch bend to force stop
-            if (value === 64 && document.getElementById('playmode-comp').checked) {
-                sendPitchBend(PLAYBACK_STOP_PITCH);
+            if (value === TP7.SPEED_STOP && document.getElementById('playmode-comp').checked) {
+                sendPitchBend(TP7.STOP_COMPENSATION_PITCH);
                 // Also update pitch slider UI
                 const pitchSlider = document.getElementById('pitch-bend');
-                pitchSlider.value = PLAYBACK_STOP_PITCH;
-                updatePitchDisplay(PLAYBACK_STOP_PITCH);
+                pitchSlider.value = TP7.STOP_COMPENSATION_PITCH;
+                updatePitchDisplay(TP7.STOP_COMPENSATION_PITCH);
             }
             updateTransportState(value);
             // Update manual input
@@ -1808,12 +1853,12 @@
         function handleLoopClick(mode) {
             if (mode === 0) {
                 // Off - always allowed
-                sendCC(17, 0);
+                sendCC(TP7.CC_LOOP, 0);
                 updateLoopState('off');
             } else if (mode === 1) {
                 // In - only allowed when off
                 if (state.loopState === 'off') {
-                    sendCC(17, 1);
+                    sendCC(TP7.CC_LOOP, 1);
                     updateLoopState('in');
                 } else {
                     log('Cannot change IN - clear loop first with OFF');
@@ -1821,7 +1866,7 @@
             } else if (mode === 2) {
                 // Out - only allowed when in is set
                 if (state.loopState === 'in') {
-                    sendCC(17, 2);
+                    sendCC(TP7.CC_LOOP, 2);
                     updateLoopState('out');
                 } else if (state.loopState === 'out') {
                     log('Loop already active - click OFF to clear');
@@ -1839,8 +1884,8 @@
             const container = document.getElementById('channel-strips');
             container.innerHTML = '';
 
-            // 6 stereo tracks controlled via MIDI channels 1-6
-            for (let track = 1; track <= 6; track++) {
+            // Stereo tracks controlled via MIDI channels 1-6
+            for (let track = 1; track <= TP7.STEREO_TRACKS; track++) {
                 const strip = document.createElement('div');
                 strip.className = 'channel-strip';
                 strip.dataset.channel = track;
@@ -1868,18 +1913,18 @@
                 const muteBtn = strip.querySelector('.mute-btn');
 
                 slider.addEventListener('input', () => {
-                    const pct = Math.round((slider.value / 127) * 100);
+                    const pct = Math.round((slider.value / MIDI.MAX) * 100);
                     valueDisplay.textContent = pct + '%';
-                    sendCC(7, parseInt(slider.value), track);
+                    sendCC(TP7.CC_VOLUME, parseInt(slider.value), track);
                 });
 
                 muteBtn.addEventListener('click', () => {
                     muteBtn.classList.toggle('active');
                     const muted = muteBtn.classList.contains('active');
                     muteBtn.textContent = muted ? '🔊 Unmute' : '🔇 Mute';
-                    sendCC(120, muted ? 127 : 0, track);
+                    sendCC(TP7.CC_MUTE, muted ? MIDI.ON : MIDI.OFF, track);
                     // Also send fader value to sync volume
-                    sendCC(7, parseInt(slider.value), track);
+                    sendCC(TP7.CC_VOLUME, parseInt(slider.value), track);
                 });
             }
         }
@@ -1894,10 +1939,10 @@
 
             // Convert MIDI value (0-127) to dB (0-42)
             function midiToDb(val) {
-                return Math.round((val / 127) * 42);
+                return Math.round((val / MIDI.MAX) * TP7.MAX_GAIN_DB);
             }
 
-            for (let input = 1; input <= 3; input++) {
+            for (let input = 1; input <= TP7.INPUT_CHANNELS; input++) {
                 const group = document.createElement('div');
                 group.className = 'control-group';
                 group.innerHTML = `
@@ -1929,25 +1974,25 @@
                 slider.addEventListener('input', () => {
                     const db = midiToDb(slider.value);
                     valueDisplay.textContent = db + 'dB';
-                    sendCC(9, parseInt(slider.value), input);
+                    sendCC(TP7.CC_GAIN, parseInt(slider.value), input);
                 });
 
                 group.querySelector('.gain-min').addEventListener('click', () => {
-                    slider.value = 0;
+                    slider.value = MIDI.MIN;
                     valueDisplay.textContent = '0dB';
-                    sendCC(9, 0, input);
+                    sendCC(TP7.CC_GAIN, MIDI.MIN, input);
                 });
 
                 group.querySelector('.gain-mid').addEventListener('click', () => {
-                    slider.value = 64;
-                    valueDisplay.textContent = '21dB';
-                    sendCC(9, 64, input);
+                    slider.value = MIDI.CENTER;
+                    valueDisplay.textContent = `${Math.round(TP7.MAX_GAIN_DB / 2)}dB`;
+                    sendCC(TP7.CC_GAIN, MIDI.CENTER, input);
                 });
 
                 group.querySelector('.gain-max').addEventListener('click', () => {
-                    slider.value = 127;
-                    valueDisplay.textContent = '42dB';
-                    sendCC(9, 127, input);
+                    slider.value = MIDI.MAX;
+                    valueDisplay.textContent = `${TP7.MAX_GAIN_DB}dB`;
+                    sendCC(TP7.CC_GAIN, MIDI.MAX, input);
                 });
             }
         }
@@ -2195,8 +2240,8 @@
                     const slider = strip.querySelector('.vol-slider');
                     const muteBtn = strip.querySelector('.mute-btn');
                     const muted = muteBtn.classList.contains('active');
-                    sendCC(7, parseInt(slider.value), ch);
-                    sendCC(120, muted ? 127 : 0, ch);
+                    sendCC(TP7.CC_VOLUME, parseInt(slider.value), ch);
+                    sendCC(TP7.CC_MUTE, muted ? MIDI.ON : MIDI.OFF, ch);
                 });
                 log('Sent all mixer values');
             });
@@ -2208,12 +2253,12 @@
                     const slider = strip.querySelector('.vol-slider');
                     const valueDisplay = strip.querySelector('.ch-value');
                     const muteBtn = strip.querySelector('.mute-btn');
-                    slider.value = 127;
+                    slider.value = MIDI.MAX;
                     valueDisplay.textContent = '100%';
                     muteBtn.classList.remove('active');
                     muteBtn.textContent = '🔇 Mute';
-                    sendCC(7, 127, ch);
-                    sendCC(120, 0, ch);
+                    sendCC(TP7.CC_VOLUME, MIDI.MAX, ch);
+                    sendCC(TP7.CC_MUTE, MIDI.OFF, ch);
                 });
                 log('Mixer reset to defaults');
             });
@@ -2241,16 +2286,16 @@
             document.getElementById('playmode-comp').addEventListener('change', (e) => {
                 if (e.target.checked) {
                     // Set pitch to stop value
-                    document.getElementById('pitch-bend').value = PLAYBACK_STOP_PITCH;
-                    document.getElementById('pitch-manual').value = PLAYBACK_STOP_PITCH;
-                    updatePitchDisplay(PLAYBACK_STOP_PITCH);
-                    sendPitchBend(PLAYBACK_STOP_PITCH);
+                    document.getElementById('pitch-bend').value = TP7.STOP_COMPENSATION_PITCH;
+                    document.getElementById('pitch-manual').value = TP7.STOP_COMPENSATION_PITCH;
+                    updatePitchDisplay(TP7.STOP_COMPENSATION_PITCH);
+                    sendPitchBend(TP7.STOP_COMPENSATION_PITCH);
                 } else {
                     // Reset pitch to 0
-                    document.getElementById('pitch-bend').value = 0;
-                    document.getElementById('pitch-manual').value = 0;
-                    updatePitchDisplay(0);
-                    sendPitchBend(0);
+                    document.getElementById('pitch-bend').value = MIDI.MIN;
+                    document.getElementById('pitch-manual').value = MIDI.MIN;
+                    updatePitchDisplay(MIDI.MIN);
+                    sendPitchBend(MIDI.MIN);
                 }
             });
 
@@ -2285,15 +2330,15 @@
             const pitchSlider = document.getElementById('pitch-bend');
 
             function updatePitchDisplay(pitch) {
-                // -8192 = x0.25 (slowest), 0 = x1, +8192 = x2
+                // PITCH_MIN = x0.25 (slowest), 0 = x1, PITCH_MAX = x2
                 // Asymmetric: negative side 0.25-1, positive side 1-2
                 let multiplier;
                 if (pitch < 0) {
-                    // -8192 -> 0.25, 0 -> 1
-                    multiplier = 1 + (pitch / 8192) * 0.75;
+                    // PITCH_MIN -> 0.25, 0 -> 1
+                    multiplier = 1 + (pitch / MIDI.PITCH_CENTER) * 0.75;
                 } else {
-                    // 0 -> 1, +8192 -> 2
-                    multiplier = 1 + (pitch / 8192);
+                    // 0 -> 1, PITCH_MAX -> 2
+                    multiplier = 1 + (pitch / MIDI.PITCH_CENTER);
                 }
                 const multiplierStr = `x${multiplier.toFixed(2)}`;
 
@@ -2302,7 +2347,7 @@
             }
 
             function setPitch(pitch) {
-                pitch = Math.max(-8192, Math.min(8191, pitch));
+                pitch = Math.max(MIDI.PITCH_MIN, Math.min(MIDI.PITCH_MAX, pitch));
                 pitchSlider.value = pitch;
                 document.getElementById('pitch-manual').value = pitch;
                 updatePitchDisplay(pitch);
@@ -2313,7 +2358,7 @@
                     btn.classList.toggle('active', btnPitch === pitch);
                 });
                 // Turn off compensation if pitch changed from stop value
-                if (pitch !== PLAYBACK_STOP_PITCH) {
+                if (pitch !== TP7.STOP_COMPENSATION_PITCH) {
                     document.getElementById('playmode-comp').checked = false;
                 }
             }
@@ -2348,7 +2393,7 @@
             // Manual pitch input
             document.getElementById('pitch-manual-apply').addEventListener('click', () => {
                 const val = parseInt(document.getElementById('pitch-manual').value);
-                if (!isNaN(val) && val >= -8192 && val <= 8191) {
+                if (!isNaN(val) && val >= MIDI.PITCH_MIN && val <= MIDI.PITCH_MAX) {
                     setPitch(val);
                 }
             });
@@ -2362,7 +2407,7 @@
             // Manual rocker input
             document.getElementById('rocker-manual-apply').addEventListener('click', () => {
                 const val = parseInt(document.getElementById('rocker-manual').value);
-                if (!isNaN(val) && val >= 0 && val <= 127) {
+                if (!isNaN(val) && val >= MIDI.MIN && val <= MIDI.MAX) {
                     setTransport(val);
                 }
             });
@@ -2396,14 +2441,14 @@
                 state.cueRecMode = false;
                 cueRecOff.classList.add('active');
                 cueRecOn.classList.remove('active', 'rec-active');
-                sendCC(16, 0);
+                sendCC(TP7.CC_CUE_REC, MIDI.OFF);
             });
 
             cueRecOn.addEventListener('click', () => {
                 state.cueRecMode = true;
                 cueRecOn.classList.add('active', 'rec-active');
                 cueRecOff.classList.remove('active');
-                sendCC(16, 127);
+                sendCC(TP7.CC_CUE_REC, MIDI.ON);
             });
 
             // Clear cues
@@ -2415,9 +2460,9 @@
             document.getElementById('cue-count-apply').addEventListener('click', () => {
                 const input = document.getElementById('cue-count');
                 let count = parseInt(input.value);
-                // Round to nearest multiple of 8
-                count = Math.round(count / 8) * 8;
-                count = Math.max(8, Math.min(128, count));
+                // Round to nearest multiple of CUE_STEP
+                count = Math.round(count / TP7.CUE_STEP) * TP7.CUE_STEP;
+                count = Math.max(TP7.CUE_MIN, Math.min(TP7.CUE_MAX, count));
                 input.value = count;
                 state.cueCount = count;
                 createCueButtons();
@@ -2425,7 +2470,7 @@
             });
 
             // Initialize states
-            updateTransportState(64);
+            updateTransportState(TP7.SPEED_STOP);
             updateLoopState('off');
 
             // Edit Layout Mode
@@ -2613,8 +2658,8 @@
                         document.getElementById('playmode-comp').checked = controlState.playmodeComp;
                         // If compensation is ON, set pitch to stop value
                         if (controlState.playmodeComp) {
-                            document.getElementById('pitch-bend').value = PLAYBACK_STOP_PITCH;
-                            updatePitchDisplay(PLAYBACK_STOP_PITCH);
+                            document.getElementById('pitch-bend').value = TP7.STOP_COMPENSATION_PITCH;
+                            updatePitchDisplay(TP7.STOP_COMPENSATION_PITCH);
                         }
                     }
 
@@ -2625,7 +2670,7 @@
                                 const slider = strip.querySelector('.vol-slider');
                                 const valueDisplay = strip.querySelector('.ch-value');
                                 slider.value = controlState.mixerVolumes[i];
-                                const pct = Math.round((slider.value / 127) * 100);
+                                const pct = Math.round((slider.value / MIDI.MAX) * 100);
                                 valueDisplay.textContent = pct + '%';
                             }
                             if (controlState.mixerMutes && controlState.mixerMutes[i]) {
@@ -2642,7 +2687,7 @@
                             if (controlState.inputGains[i] !== undefined) {
                                 slider.value = controlState.inputGains[i];
                                 const valueDisplay = slider.closest('.gain-control').querySelector('.gain-value');
-                                const db = Math.round((slider.value / 127) * 42);
+                                const db = Math.round((slider.value / MIDI.MAX) * TP7.MAX_GAIN_DB);
                                 valueDisplay.textContent = db + 'dB';
                             }
                         });
@@ -2714,10 +2759,10 @@
                 }
                 // Transport shortcuts
                 else if (e.key === ' ') { // Space = Play/Stop toggle
-                    if (state.transport === 64) {
-                        setTransport(68);
+                    if (state.transport === TP7.SPEED_STOP) {
+                        setTransport(TP7.SPEED_FWD_1X);
                     } else {
-                        setTransport(64);
+                        setTransport(TP7.SPEED_STOP);
                     }
                     e.preventDefault();
                 }
@@ -2727,7 +2772,7 @@
                     document.getElementById('cue-rec-on').classList.toggle('active', state.cueRecMode);
                     document.getElementById('cue-rec-on').classList.toggle('rec-active', state.cueRecMode);
                     document.getElementById('cue-rec-off').classList.toggle('active', !state.cueRecMode);
-                    sendCC(16, state.cueRecMode ? 127 : 0);
+                    sendCC(TP7.CC_CUE_REC, state.cueRecMode ? MIDI.ON : MIDI.OFF);
                     e.preventDefault();
                 }
                 // Loop controls
