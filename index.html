@@ -1437,17 +1437,12 @@
                     <span><strong>1 of 3 speed controls.</strong> Emulates physical rocker. Works with AND without Play. NOT the SPD on screen!</span>
                     <button class="dismiss-btn" title="Dismiss">✕</button>
                 </div>
-                <div id="dismiss-rocker-warning" class="warning-box dismissible">
-                    <span class="icon">⚠️</span>
-                    <span><strong>Playback Mode (After Play or Cue trigger): CAN'T STOP!</strong> Value 64 no longer stops - center shifts! 0-60 = reverse, 61-127 = forward. Slowest at 60/61. To stop: CC18=60 + Pitch Bend=+708.</span>
-                    <button class="dismiss-btn" title="Dismiss">✕</button>
-                </div>
                 <div class="playmode-compensation">
                     <label>
                         <input type="checkbox" id="playmode-comp">
-                        <span>Playback Stop Compensation</span>
+                        <span>Playback Mode</span>
                     </label>
-                    <small>When ON, Stop also sends Pitch Bend +708 to force stop during playback/cue mode</small>
+                    <small>Enable when tape is playing (via Cue or physical Play) to fix stop and speed control</small>
                 </div>
                 <div class="transport-buttons">
                     <button class="transport-btn" id="btn-super-rew" data-speed="0" title="Super Fast Rewind">
@@ -1795,18 +1790,41 @@
             if (rockerStateEl) rockerStateEl.textContent = rockerSpeed;
         }
 
+        function updatePitchDisplay(pitch) {
+            // PITCH_MIN = x0.25 (slowest), 0 = x1, PITCH_MAX = x2
+            // Asymmetric: negative side 0.25-1, positive side 1-2
+            let multiplier;
+            if (pitch < 0) {
+                multiplier = 1 + (pitch / MIDI.PITCH_OFFSET) * 0.75;
+            } else {
+                multiplier = 1 + (pitch / MIDI.PITCH_OFFSET);
+            }
+            const multiplierStr = `x${multiplier.toFixed(2)}`;
+            document.getElementById('speed-multiplier').textContent = multiplierStr;
+            document.getElementById('pitch-value').textContent = `(pitch: ${pitch})`;
+        }
+
         function setTransport(value) {
+            const playbackMode = document.getElementById('playmode-comp').checked;
             sendCC(TP7.CC_TRANSPORT, value);
-            // Playback stop compensation: send pitch bend to force stop
-            if (value === TP7.SPEED_STOP && document.getElementById('playmode-comp').checked) {
-                sendPitchBend(TP7.STOP_COMPENSATION_PITCH);
-                // Also update pitch slider UI
+
+            if (playbackMode) {
                 const pitchSlider = document.getElementById('pitch-bend');
-                pitchSlider.value = TP7.STOP_COMPENSATION_PITCH;
-                updatePitchDisplay(TP7.STOP_COMPENSATION_PITCH);
+                if (value === TP7.SPEED_STOP) {
+                    // "Play" button in playback mode: reset pitch to 0
+                    sendPitchBend(MIDI.MIN);
+                    pitchSlider.value = MIDI.MIN;
+                    document.getElementById('pitch-manual').value = MIDI.MIN;
+                    updatePitchDisplay(MIDI.MIN);
+                } else {
+                    // Other buttons: add pitch compensation
+                    sendPitchBend(TP7.STOP_COMPENSATION_PITCH);
+                    pitchSlider.value = TP7.STOP_COMPENSATION_PITCH;
+                    document.getElementById('pitch-manual').value = TP7.STOP_COMPENSATION_PITCH;
+                    updatePitchDisplay(TP7.STOP_COMPENSATION_PITCH);
+                }
             }
             updateTransportState(value);
-            // Update manual input
             document.getElementById('rocker-manual').value = value;
         }
 
@@ -2283,22 +2301,41 @@
             document.getElementById('ble-connect-btn').addEventListener('click', connectBLE);
             document.getElementById('ble-disconnect-btn').addEventListener('click', disconnectBLE);
 
-            // Playback stop compensation checkbox
+            // Playback mode checkbox - remaps button labels/icons and adds compensation
             document.getElementById('playmode-comp').addEventListener('change', (e) => {
+                updatePlaybackModeUI(e.target.checked);
+
+                // Set pitch based on mode AND current transport state
                 if (e.target.checked) {
-                    // Set pitch to stop value
-                    document.getElementById('pitch-bend').value = TP7.STOP_COMPENSATION_PITCH;
-                    document.getElementById('pitch-manual').value = TP7.STOP_COMPENSATION_PITCH;
-                    updatePitchDisplay(TP7.STOP_COMPENSATION_PITCH);
-                    sendPitchBend(TP7.STOP_COMPENSATION_PITCH);
+                    // If current transport is "Play" (64), pitch stays 0, else +708
+                    if (state.transport === TP7.SPEED_STOP) {
+                        document.getElementById('pitch-bend').value = MIDI.MIN;
+                        document.getElementById('pitch-manual').value = MIDI.MIN;
+                        updatePitchDisplay(MIDI.MIN);
+                        sendPitchBend(MIDI.MIN);
+                    } else {
+                        document.getElementById('pitch-bend').value = TP7.STOP_COMPENSATION_PITCH;
+                        document.getElementById('pitch-manual').value = TP7.STOP_COMPENSATION_PITCH;
+                        updatePitchDisplay(TP7.STOP_COMPENSATION_PITCH);
+                        sendPitchBend(TP7.STOP_COMPENSATION_PITCH);
+                    }
                 } else {
-                    // Reset pitch to 0
                     document.getElementById('pitch-bend').value = MIDI.MIN;
                     document.getElementById('pitch-manual').value = MIDI.MIN;
                     updatePitchDisplay(MIDI.MIN);
                     sendPitchBend(MIDI.MIN);
                 }
             });
+
+            function updatePlaybackModeUI(playbackMode) {
+                // Update button labels and icons
+                document.querySelector('#btn-rew .label').textContent = playbackMode ? 'Stop' : 'Rew';
+                document.querySelector('#btn-rew .icon').textContent = playbackMode ? '⏹️' : '◀️';
+                document.querySelector('#btn-stop .label').textContent = playbackMode ? 'Play' : 'Stop';
+                document.querySelector('#btn-stop .icon').textContent = playbackMode ? '▶️' : '⏹️';
+                document.querySelector('#btn-play .label').textContent = playbackMode ? 'x2' : 'Play';
+                document.querySelector('#btn-play .icon').textContent = playbackMode ? '⏩' : '▶️';
+            }
 
             // Transport buttons
             document.querySelectorAll('.transport-btn[data-speed]').forEach(btn => {
@@ -2330,23 +2367,6 @@
             // Pitch bend / Speed modifier
             const pitchSlider = document.getElementById('pitch-bend');
 
-            function updatePitchDisplay(pitch) {
-                // PITCH_MIN = x0.25 (slowest), 0 = x1, PITCH_MAX = x2
-                // Asymmetric: negative side 0.25-1, positive side 1-2
-                let multiplier;
-                if (pitch < 0) {
-                    // PITCH_MIN -> 0.25, 0 -> 1
-                    multiplier = 1 + (pitch / MIDI.PITCH_OFFSET) * 0.75;
-                } else {
-                    // 0 -> 1, PITCH_MAX -> 2
-                    multiplier = 1 + (pitch / MIDI.PITCH_OFFSET);
-                }
-                const multiplierStr = `x${multiplier.toFixed(2)}`;
-
-                document.getElementById('speed-multiplier').textContent = multiplierStr;
-                document.getElementById('pitch-value').textContent = `(pitch: ${pitch})`;
-            }
-
             function setPitch(pitch) {
                 pitch = Math.max(MIDI.PITCH_MIN, Math.min(MIDI.PITCH_MAX, pitch));
                 pitchSlider.value = pitch;
@@ -2358,10 +2378,7 @@
                     const btnPitch = parseInt(btn.dataset.pitch);
                     btn.classList.toggle('active', btnPitch === pitch);
                 });
-                // Turn off compensation if pitch changed from stop value
-                if (pitch !== TP7.STOP_COMPENSATION_PITCH) {
-                    document.getElementById('playmode-comp').checked = false;
-                }
+                // Note: playback mode stays on even if pitch is changed manually
             }
 
             pitchSlider.addEventListener('input', () => {
@@ -2653,11 +2670,11 @@
                         document.getElementById('cue-rec-off').classList.remove('active');
                     }
 
-                    // Restore playmode compensation
+                    // Restore playback mode
                     if (controlState.playmodeComp !== undefined) {
                         document.getElementById('playmode-comp').checked = controlState.playmodeComp;
-                        // If compensation is ON, set pitch to stop value
                         if (controlState.playmodeComp) {
+                            updatePlaybackModeUI(true);
                             document.getElementById('pitch-bend').value = TP7.STOP_COMPENSATION_PITCH;
                             updatePitchDisplay(TP7.STOP_COMPENSATION_PITCH);
                         }
