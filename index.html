@@ -2049,6 +2049,7 @@
                     document.getElementById('midi-output').value = output.id;
                     updateStatus('connected', `USB: ${output.name}`);
                     log(`Auto-connected to ${output.name}`);
+                    sendAllState();
                     return;
                 }
             }
@@ -2086,6 +2087,7 @@
                 connectionType = 'usb';
                 updateStatus('connected', `USB: ${midiOutput.name}`);
                 log(`Connected to ${midiOutput.name}`);
+                sendAllState();
             } else {
                 updateStatus('disconnected', 'Connection failed');
                 log('Failed to connect');
@@ -2142,6 +2144,7 @@
                 connectionType = 'ble';
                 updateBLEStatus('connected', `BLE: ${bleDevice.name}`);
                 log(`Connected to ${bleDevice.name} via Bluetooth`);
+                sendAllState();
 
                 document.getElementById('ble-connect-btn').style.display = 'none';
                 document.getElementById('ble-disconnect-btn').style.display = 'inline-block';
@@ -2237,6 +2240,17 @@
             // BLE Connection buttons
             document.getElementById('ble-connect-btn').addEventListener('click', connectBLE);
             document.getElementById('ble-disconnect-btn').addEventListener('click', disconnectBLE);
+
+            // Playback stop compensation checkbox
+            document.getElementById('playmode-comp').addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    // Set pitch to stop value
+                    document.getElementById('pitch-bend').value = PLAYBACK_STOP_PITCH;
+                    document.getElementById('pitch-manual').value = PLAYBACK_STOP_PITCH;
+                    updatePitchDisplay(PLAYBACK_STOP_PITCH);
+                    sendPitchBend(PLAYBACK_STOP_PITCH);
+                }
+            });
 
             // Transport buttons
             document.querySelectorAll('.transport-btn[data-speed]').forEach(btn => {
