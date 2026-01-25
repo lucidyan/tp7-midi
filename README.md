@@ -21,59 +21,133 @@ Works on phones, tablets, and computers - right in your browser.
 
 ### Browsers (READ THIS FIRST)
 
-#### iOS (iPhone / iPad) limitations — why only Bluefy works
-- **Safari on iOS does not support Web Bluetooth** (needed for Bluetooth control) and **does not support Web MIDI** (needed for USB control).
-- **All “normal” iOS browsers** (Safari/Chrome/Edge/Firefox) are still limited by iOS and won’t work for TP7-MIDI Bluetooth/USB in the browser.
-- **Bluefy** is the one iOS browser that provides **Web BLE (Web Bluetooth) support**, so it can connect to the TP-7 over **Bluetooth**.
-- **USB/MIDI on iOS:** not possible in the browser (Web MIDI isn’t supported on iOS). Also, very old “Web MIDI browser” apps from ~2016 are outdated and won’t work for this.
+This app uses **Web Bluetooth (BLE)** for wireless control and **Web MIDI** for USB control.
+Browser support is uneven — check compatibility here:
+- Web Bluetooth support table: https://caniuse.com/web-bluetooth
+- Web MIDI support table: https://caniuse.com/midi
+- Web Bluetooth docs (requirements + permissions): https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API
+- Web MIDI docs (requirements + permissions): https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API
+
+#### Quick compatibility (TP7-MIDI)
+| Platform | Bluetooth (Web Bluetooth / BLE) | USB (Web MIDI) |
+|---|---:|---:|
+| **iOS (Safari/Chrome/Edge/Firefox)** | ❌ | ❌ |
+| **iOS (Bluefy)** | ✅ (BLE only) | ❌ |
+| **Android (Chrome/Edge/Samsung Internet/Opera)** | ✅ | ✅ |
+| **Android (Firefox)** | ❌ | ❌ |
+| **macOS / Windows / Linux (Chrome/Edge/Opera)** | ✅ | ✅ |
+| **macOS / Windows / Linux (Firefox)** | ❌ | ✅ (desktop only) |
+| **macOS / iOS (Safari)** | ❌ | ❌ |
+| **Brave (desktop)** | ⚠️ *usually OFF by default* | ⚠️ *sometimes broken/disabled* |
+
+---
+
+#### iOS (iPhone / iPad) limitations — why only **Bluefy** works
+- **Safari on iOS does not support Web Bluetooth** and **does not support Web MIDI**:
+  - Web Bluetooth: https://caniuse.com/web-bluetooth
+  - Web MIDI: https://caniuse.com/midi
+- **All iOS browsers that are “Safari under the hood”** (Chrome/Edge/Firefox on iOS) inherit the same limitations.
+- **Bluefy** is a special iOS browser that implements **Web BLE** so it can do **Bluetooth (BLE)** in-browser:
+  - App Store: https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055
+- **USB/MIDI on iOS:** not possible in the browser (no Web MIDI support on iOS).
+
+---
 
 #### Android — which browsers work?
-Use a Chromium-based browser that supports **Web Bluetooth** (for Bluetooth) and **Web MIDI** (for USB):
-- ✅ **Chrome**
-- ✅ **Edge**
-- ✅ **Samsung Internet**
-- ✅ **Opera**
-- ❌ **Firefox for Android** (no Web Bluetooth / Web MIDI for this use case)
+Use a Chromium-based browser with Web Bluetooth + Web MIDI support:
+- ✅ **Chrome** (Bluetooth help: https://support.google.com/chrome/answer/6362090)
+- ✅ **Microsoft Edge** (Bluetooth/USB help: https://support.microsoft.com/en-us/microsoft-edge/connect-a-website-to-a-bluetooth-or-usb-device-in-microsoft-edge-107ba8a4-60aa-0fd3-2d26-afd63d0964f4)
+- ✅ **Samsung Internet** (Web Bluetooth docs: https://samsunginternet.github.io/docs/web-bluetooth)
+- ✅ **Opera** (Web Bluetooth support: https://caniuse.com/web-bluetooth / Web MIDI support: https://caniuse.com/midi)
+- ❌ **Firefox for Android** (no Web Bluetooth / no Web MIDI): https://caniuse.com/web-bluetooth / https://caniuse.com/midi
 
 If Bluetooth scanning finds **zero devices** on Android:
 - Turn **Bluetooth ON**
-- Turn **Location Services ON**
-- Allow the browser “Nearby devices” / Bluetooth permissions (and Location permission if your Android version asks)
+- Turn **Location Services ON** (BLE scanning is often gated behind Location on Android)
+- Allow the browser **Nearby devices / Bluetooth** permission (and Location permission if asked)
+
+---
 
 #### macOS / Windows / Linux — recommended browsers
-- ✅ **Chrome or Edge** (best-tested)
-- ✅ **Opera** (Chromium-based, usually fine)
-- ⚠️ **Firefox (desktop):** USB/MIDI *may* work, but **Bluetooth won’t** (no Web Bluetooth)
-- ⚠️ **Brave:** Web Bluetooth may be **disabled by default**. Use Chrome/Edge, or enable it:
-  1. Open `brave://flags`
-  2. Search **Bluetooth** / **Web Bluetooth**
-  3. Enable the Web Bluetooth flag(s)
-  4. Relaunch Brave
+- ✅ **Chrome** (Web Bluetooth docs: https://developer.chrome.com/docs/capabilities/bluetooth)
+- ✅ **Microsoft Edge** (Bluetooth/USB help: https://support.microsoft.com/en-us/microsoft-edge/connect-a-website-to-a-bluetooth-or-usb-device-in-microsoft-edge-107ba8a4-60aa-0fd3-2d26-afd63d0964f4)
+- ✅ **Opera** (Web MIDI settings hint: `opera://settings/content/midiDevices`)
+- ⚠️ **Firefox (desktop)**: **USB/MIDI can work**, **Bluetooth won’t**:
+  - Web MIDI support: https://caniuse.com/midi
+  - Web Bluetooth unsupported: https://caniuse.com/web-bluetooth
+  - Firefox Web MIDI note (permission add-on): https://developer.mozilla.org/en-US/docs/Mozilla/Firefox/Releases/108
+- ❌ **Safari (macOS)**: no Web Bluetooth + no Web MIDI:
+  - https://caniuse.com/web-bluetooth
+  - https://caniuse.com/midi
 
-### Enable Bluetooth / MIDI permissions (Desktop + Android)
+---
 
-#### Bluetooth (Web Bluetooth)
-- Web Bluetooth requires a **secure context**: HTTPS (or `localhost` for dev).
-- Pressing **Connect** should open a **device picker**. If it doesn’t:
-  - Check the site’s permissions (don’t “Block” Bluetooth for this site)
-  - On **macOS**: System Settings → Privacy & Security → **Bluetooth** → allow your browser
+#### Brave notes (desktop)
+Brave is Chromium-based but often disables “dangerous” device APIs by default.
 
-#### USB (Web MIDI)
-- Web MIDI also requires **HTTPS** (or `localhost`).
-- When the browser asks for MIDI access, click **Allow**.
-- If you previously blocked it: lock icon → **Site settings** → allow **MIDI devices** (wording may vary).
+**If Bluetooth doesn’t work in Brave:**
+1. Open `brave://flags`
+2. Search: **Web Bluetooth**
+3. Enable it
+4. Relaunch Brave  
+(Example reports: https://community.brave.app/t/can-you-enable-web-bluetooth-api-in-brave/522553)
+
+**If Brave says “MIDI devices not supported”:**
+- Try **Chrome or Edge** first (Brave sometimes disables/breaks Web MIDI in some builds):
+  - Example report: https://community.brave.app/t/midi-devices-not-supported/507756
+
+---
+
+### Permissions & feature enablement (Desktop + Android)
+
+#### 1) HTTPS requirement (must-have)
+Web Bluetooth and Web MIDI require a **secure context** (HTTPS), except `localhost` for dev:
+- Web Bluetooth (MDN): https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API
+- Web MIDI (MDN): https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API
+
+#### 2) Bluetooth permission (Web Bluetooth)
+**Chrome / Chromium browsers**
+- Chrome help (Bluetooth site connect): https://support.google.com/chrome/answer/6362090
+- Debug page (advanced): `chrome://bluetooth-internals` (Chrome docs mention it: https://developer.chrome.com/docs/capabilities/bluetooth)
+
+**macOS system permission**
+- If the browser is blocked at OS level: System Settings → Privacy & Security → **Bluetooth**
+  - Apple guide: https://support.apple.com/guide/mac-help/change-privacy-security-settings-on-mac-mchl211c911f/mac
+
+#### 3) MIDI permission (Web MIDI / USB)
+**Chrome**
+- MIDI permission help: https://support.google.com/chrome/answer/14871962
+- Chrome change (permission prompt for all Web MIDI access): https://developer.chrome.com/blog/web-midi-permission-prompt
+
+**Firefox (desktop)**
+- Firefox may prompt you to install a **Site Permission Add-On** when a site requests MIDI:
+  - https://developer.mozilla.org/en-US/docs/Mozilla/Firefox/Releases/108
+
+---
 
 ### Android + USB cable: TP-7 not showing up (only charging)
-1. Use a USB-C cable/adapter that supports **data/OTG** (not charge-only).
+On Android, you must switch the USB mode to **MIDI**:
+
+1. Use a **data/OTG-capable** USB-C cable/adapter (not charge-only).
 2. Plug in the TP-7.
-3. Pull down Android notifications → tap the **USB** notification (often says “Charging this device via USB”).
-4. Select **MIDI** mode.
-5. Reload the page → press **Connect** again → choose the TP-7 from the MIDI device list.
+3. Pull down notifications → tap **USB for…**
+4. Select **MIDI**
+5. Reload the page → press **Connect** → choose the TP-7 from the MIDI device list.
+
+Official Android docs mention this exact flow (“USB for…” → MIDI):
+- https://source.android.com/docs/core/audio/midi
+
+Tip: If you want it to default to MIDI every time:
+- Settings → Developer options → Networking → **Select USB Configuration** → **MIDI**
+  (also documented here: https://source.android.com/docs/core/audio/midi)
+
+---
 
 ### Still stuck?
-- Update the browser to the latest version.
+- Update your browser to the latest version.
 - Close other tabs/apps that might already be connected to TP-7 via MIDI/Bluetooth.
-- On Linux: some sandboxed Chromium builds (Snap/Flatpak) can’t see USB MIDI devices — try official Chrome or a non-sandboxed Chromium build.
+- Linux note: sandboxed browser packages (Snap/Flatpak) can block USB/Bluetooth access — try official Chrome/Edge, or adjust sandbox permissions.
+
 
  ---
  
