@@ -990,10 +990,56 @@ document.addEventListener('DOMContentLoaded', () => {
                 section.classList.add('draggable');
                 section.draggable = true;
                 section.dataset.index = index;
+
+                // Add reorder controls if not present
+                if (!section.querySelector('.section-reorder')) {
+                    const controls = document.createElement('div');
+                    controls.className = 'section-reorder';
+                    controls.innerHTML = `
+                        <button class="move-btn move-up" title="Move up">▲</button>
+                        <button class="move-btn move-down" title="Move down">▼</button>
+                        <span class="drag-handle">⋮⋮</span>
+                    `;
+                    section.appendChild(controls);
+
+                    controls.querySelector('.move-up').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const prev = section.previousElementSibling;
+                        if (prev && prev.classList.contains('section')) {
+                            prev.before(section);
+                            saveLayoutOrder();
+                            updateMoveButtons();
+                        }
+                    });
+
+                    controls.querySelector('.move-down').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const next = section.nextElementSibling;
+                        if (next && next.classList.contains('section')) {
+                            next.after(section);
+                            saveLayoutOrder();
+                            updateMoveButtons();
+                        }
+                    });
+                }
             } else {
                 section.classList.remove('draggable', 'drag-over');
                 section.draggable = false;
+                // Remove reorder controls
+                const controls = section.querySelector('.section-reorder');
+                if (controls) controls.remove();
             }
+        });
+        if (enabled) updateMoveButtons();
+    }
+
+    function updateMoveButtons() {
+        const sections = Array.from(document.querySelectorAll('#app > .section'));
+        sections.forEach((section, i) => {
+            const upBtn = section.querySelector('.move-up');
+            const downBtn = section.querySelector('.move-down');
+            if (upBtn) upBtn.disabled = i === 0;
+            if (downBtn) downBtn.disabled = i === sections.length - 1;
         });
     }
 

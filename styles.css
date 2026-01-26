@@ -1193,14 +1193,48 @@ kbd {
     border-color: var(--accent);
 }
 
-.section.draggable::before {
-    content: '⋮⋮';
+.section-reorder {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 8px;
+    right: 8px;
+    display: none;
+    gap: 2px;
+    align-items: center;
+}
+
+.section.draggable .section-reorder {
+    display: flex;
+}
+
+.section-reorder .drag-handle {
     color: var(--text-dim);
     font-size: 1.2rem;
     letter-spacing: -3px;
+    padding: 0 4px;
+}
+
+.section-reorder .move-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 1rem;
+    line-height: 1;
+    border-radius: 4px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+}
+
+.section-reorder .move-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.section-reorder .move-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }
 
 .section.dragging {
