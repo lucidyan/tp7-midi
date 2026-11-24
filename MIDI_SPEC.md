@@ -183,6 +183,51 @@ Tape movement = Rocker (CC18) only
 Final speed = SPD (screen) × Rocker (CC18) × Pitch Bend
 ```
 
+### BPM Matching and Precision
+
+The browser's **Match BPM** feature uses the experimental asymmetric mapping above.
+Teenage Engineering documents Pitch Bend for playback speed but does **not** publish
+this curve. Hardware validation is still required; numerical accuracy does not
+establish accuracy of the physical playback speed.
+
+With on-device SPD at unity, external sync off and the rocker released during
+native playback, let `r = targetBpm / sourceBpm`:
+
+```
+r < 1: idealPitch = (r - 1) × 32768 / 3
+r ≥ 1: idealPitch = (r - 1) × 8192
+```
+
+Choose the nearest integer pitch. Exact half-step ties choose the pitch closer to
+zero. Input decimals, division and rounding use BigInt fractions, so no rounded
+display value feeds back into the calculation. Each Apply is absolute relative to
+the source BPM, not relative to the previously applied pitch. The source must be
+the original track BPM, not an already speed-adjusted BPM.
+
+The positive endpoint is **8191**, giving **1.9998779296875×**, not exactly 2×.
+The negative endpoint is exactly **0.25×**. Out-of-range requests are rejected.
+Within the range, the maximum quantization error is half a step:
+
+- Slower than unity: `sourceBpm × 3 / 65536` BPM.
+- Faster than unity: `sourceBpm / 16384` BPM.
+
+Apply sends `[0xB0, 18, 64]` followed by the 14-bit Pitch Bend, as one USB send or
+one BLE packet with timestamps for each message. This releases the rocker for
+native playback and avoids the application's unrelated +708 stop compensation.
+It does not start native playback or read/reset the device's on-screen SPD.
+“Immediate” means no software ramp or scheduled correction; connection latency
+and firmware processing time still apply. There is no device acknowledgement.
+
+The BPM preview reports the result of this mapping and its signed quantization
+error, not a measured tempo. Neither a zero mathematical error nor receipt of a
+MIDI clock proves that the audio plays at that BPM. The app does not infer a
+track's exact metadata from clock timing.
+
+Stored BPM can be read from a user-selected **RIFF/WAVE ACID** chunk (little-endian
+float32 at payload offset 20). The reader skips audio data, checks chunk boundaries
+and padding, and rejects conflicting metadata. Missing/invalid BPM requires manual
+input. Other file formats, including RF64 and MP3, currently require manual input.
+
 ### Stop Point During Playback
 
 **To stop tape during playback:**
@@ -196,7 +241,9 @@ The constant **+708** is the pitch bend value needed to compensate for CC18=60's
 
 ## State Persistence Warning
 
-**TP-7 does NOT report its state via MIDI.**
+**The standard MIDI interface has no documented state queries.** Vendor SysEx
+replies exist; see [the separate companion-protocol investigation](docs/REMOTE_PROTOCOL.md).
+Those replies do not establish support for reading or selecting existing file cues.
 
 This means:
 - You cannot query current transport state
@@ -266,7 +313,7 @@ This is a known limitation - there's no way to prevent this via MIDI.
 2. **CC18 (Transport)** has TWO completely different modes (stopped vs playing)
 3. **Playback mode** removes the stop position from CC18 - need pitch compensation
 4. **Stop during playback** requires CC18=60 + Pitch Bend=+708
-5. **No state feedback** - TP-7 never reports its state when receiving MIDI commands
+5. **No standard state queries** - The standard control UI has no feedback; vendor SysEx is a separate experimental interface
 6. **Controller Mode is separate** - TP-7 only sends button events in Controller Mode, which is mutually exclusive with receiving commands
 7. **MIDI-CUE setting required** - Must enable MIDI-CUE in TP-7 settings for cue markers to work
 8. **3 speed controls** - SPD (no MIDI access!), Rocker (CC18), Pitch Bend - all multiply during playback

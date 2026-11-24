@@ -4,6 +4,56 @@ Technical setup for local development and testing.
 
 ---
 
+## Tests
+
+The production app is still plain HTML/CSS/JS with no build step. Deploy the root
+files together, including the tempo, local WAV cue reader, companion transfer, remote session
+and cue/grid panel scripts, to GitHub Pages.
+
+Install the pinned development dependencies with Node.js 20 or newer:
+
+```sh
+npm ci
+npm test
+npx playwright install chromium
+npm run test:browser
+```
+
+`npm test` runs arithmetic, metadata, packet and codec tests. They cover every
+representable pitch, exact half-step boundaries, an independent exhaustive
+nearest-value check, invalid/out-of-range BPM, metadata corruption and skipping
+large audio payloads. `npm run test:browser` uses simulated USB/BLE devices.
+There are no runtime npm dependencies or production build step.
+
+The GitHub Actions workflow runs both suites with Node.js 24 and Chromium on
+pull requests and pushes. It needs only read access to repository contents.
+
+Set `TP7_BROWSER_PATH` to an installed Chromium/Edge executable to use it instead
+of Playwright's bundled browser. `TP7_SCREENSHOT_DIR` optionally saves desktop and
+mobile screenshots. These tests cover MIDI packets, retries, disconnection,
+cancellation of stale queued commands, reload/persistence, cue BPM loading and layout.
+They never access a real MIDI device and do not validate TP-7's speed curve.
+The remote-panel tests also simulate fragmented BLE SysEx, successful device
+acknowledgements, opt-in listening, notification failure and session timeout.
+They cover unsolicited companion notifications, position/file parsing, exact
+millisecond seek encoding, failed seeks, and cancellation when the track changes.
+They do not validate native cue navigation; see [REMOTE_PROTOCOL.md](../docs/REMOTE_PROTOCOL.md).
+Prepared-cue tests also cover arbitrary Unicode filenames, automatic loading only
+after confirmed Stop, one attempt per track selection, manual retry, cancellation
+on track change, preference persistence, and real-position highlighting across
+forward/backward jumps, stale notifications, EOF and page boundaries. These are
+simulated transport checks. Cue loading and live highlighting have also been
+checked on TP-7 1.1.11 with Bluefy. Additional tests cover cue-mode cancellation,
+missing helpers, BPM auto-fill/manual precedence, and the optional grid remaining
+unbuilt while hidden.
+
+For a hardware check, use a known constant-BPM recording, native playback with
+on-device SPD=1× and external clock sync disabled. Measure recorded output against
+the predicted BPM at unity and several negative/positive pitches on the actual
+firmware. The current mapping must be treated as experimental until validated.
+
+---
+
 ## Local Testing
 
 Web MIDI and Web Bluetooth require HTTPS. Self-signed certs don't work well with Safari (macOS/iOS). Use **mkcert** for proper local HTTPS.

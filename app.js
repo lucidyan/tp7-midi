@@ -12,6 +12,11 @@ const BLE_MIDI_CHARACTERISTIC = '7772e5db-3868-4112-a1a9-f2669d106bf3';
 let bleDevice = null;
 let bleMidiCharacteristic = null;
 let connectionType = null; // 'usb' or 'ble'
+let bleWriteQueue = Promise.resolve();
+let tempoRevision = 0;
+let tempoPending = false;
+let tempoLastSent = null;
+let tempoFileRevision = 0;
 
 // =====================================================================
 // Constants
@@ -85,21 +90,50 @@ if (!navigator.bluetooth) {
 // MIDI Utilities (USB + BLE)
 // =====================================================================
 
-// Send raw MIDI bytes - works with both USB and BLE
-function sendMidi(bytes) {
+function isMidiConnected() {
+    return (connectionType === 'usb' && midiOutput && midiOutput.state !== 'disconnected') ||
+        (connectionType === 'ble' && bleMidiCharacteristic && bleDevice?.gatt.connected);
+}
+
+// Send a batch immediately on USB, or in one ordered BLE write. The Promise
+// confirms delivery to the browser/transport, not a TP-7 state acknowledgement.
+function transmitMidiBatch(messages, isCurrent = () => true) {
+    if (window.tp7CompanionBusy) return Promise.reject(new Error('Wait for the cue file transfer to finish.'));
     if (connectionType === 'ble' && bleMidiCharacteristic) {
-        // BLE MIDI format: header + timestamp + midi bytes
-        const timestamp = Date.now() & 0x1FFF;
-        const header = 0x80 | ((timestamp >> 7) & 0x3F);
-        const timestampLow = 0x80 | (timestamp & 0x7F);
-        const packet = new Uint8Array([header, timestampLow, ...bytes]);
-        bleMidiCharacteristic.writeValueWithoutResponse(packet);
-        return true;
-    } else if (connectionType === 'usb' && midiOutput) {
-        midiOutput.send(bytes);
-        return true;
+        const characteristic = bleMidiCharacteristic;
+        const write = bleWriteQueue.then(async () => {
+            if (window.tp7CompanionBusy) throw new Error('Cue file transfer is active.');
+            if (connectionType !== 'ble' || bleMidiCharacteristic !== characteristic || !isMidiConnected()) {
+                throw new Error('Bluetooth disconnected. Reconnect and apply again.');
+            }
+            if (!isCurrent()) throw new Error('Tempo settings changed before sending. Apply again.');
+            const timestamp = Math.floor(performance.now()) & 0x1FFF;
+            const header = 0x80 | ((timestamp >> 7) & 0x3F);
+            const timestampLow = 0x80 | (timestamp & 0x7F);
+            const packet = new Uint8Array([header, ...messages.flatMap(bytes => [timestampLow, ...bytes])]);
+            await characteristic.writeValueWithoutResponse(packet);
+        });
+        // Keep later writes usable after a failure; callers still receive it.
+        bleWriteQueue = write.catch(() => {});
+        return write;
     }
-    return false;
+    if (connectionType === 'usb' && isMidiConnected()) {
+        try {
+            if (!isCurrent()) throw new Error('Tempo settings changed. Apply again.');
+            midiOutput.send(messages.flat());
+            return Promise.resolve();
+        } catch (error) {
+            return Promise.reject(error);
+        }
+    }
+    return Promise.reject(new Error('Connect TP-7 before applying tempo.'));
+}
+
+// Existing controls retain their synchronous availability check.
+function sendMidi(bytes) {
+    if (!isMidiConnected()) return false;
+    transmitMidiBatch([bytes]).catch(error => log(`MIDI send failed: ${error.message}`));
+    return true;
 }
 
 function sendCC(cc, value, channel = 1) {
@@ -219,6 +253,7 @@ function ccToSlider(cc) {
 }
 
 function updateTransportState(value) {
+    invalidateTempo();
     state.transport = value;
 
     document.getElementById('speed-slider').value = ccToSlider(value);
@@ -264,17 +299,58 @@ function updateTransportState(value) {
 }
 
 function updatePitchDisplay(pitch) {
-    // PITCH_MIN = x0.25 (slowest), 0 = x1, PITCH_MAX = x2
-    // Asymmetric: negative side 0.25-1, positive side 1-2
-    let multiplier;
-    if (pitch < 0) {
-        multiplier = 1 + (pitch / MIDI.PITCH_OFFSET) * 0.75;
-    } else {
-        multiplier = 1 + (pitch / MIDI.PITCH_OFFSET);
-    }
-    const multiplierStr = `x${multiplier.toFixed(2)}`;
+    invalidateTempo();
+    const multiplierStr = `x${TP7Tempo.multiplier(pitch).toFixed(8)}`;
     document.getElementById('speed-multiplier').textContent = multiplierStr;
     document.getElementById('pitch-value').textContent = `(pitch: ${pitch})`;
+}
+
+// =====================================================================
+// BPM matching
+// =====================================================================
+
+function invalidateTempo() {
+    tempoRevision++;
+    tempoLastSent = null;
+    updateTempoPreview();
+}
+
+function tempoInputs() {
+    return [document.getElementById('tempo-source').value, document.getElementById('tempo-target').value];
+}
+
+function tempoNumber(value) {
+    // Keep small nonzero errors visible instead of rounding them to zero.
+    if (value !== 0 && Math.abs(value) < 0.00000001) return value.toExponential(6);
+    return value.toFixed(8).replace(/\.?0+$/, '');
+}
+
+function updateTempoPreview() {
+    const button = document.getElementById('tempo-apply');
+    const result = document.getElementById('tempo-result');
+    if (!button || !result) return;
+    button.disabled = true;
+    button.textContent = tempoPending ? 'Sending…' : 'Apply';
+    result.dataset.status = '';
+    const inputs = tempoInputs();
+    if (inputs.some(value => !value.trim())) {
+        result.textContent = 'Enter the track BPM and target BPM.';
+        return;
+    }
+    try {
+        const match = TP7Tempo.calculate(...inputs);
+        const difference = match.exact ? '0 (exact in this mapping)' :
+            `${match.errorBpm > 0 ? '+' : ''}${tempoNumber(match.errorBpm)}`;
+        const sent = tempoLastSent === JSON.stringify(inputs);
+        const prefix = sent ? 'Sent · predicted' : 'Preview';
+        result.textContent = `${prefix}: ${tempoNumber(match.achievedBpm)} BPM · Δ ${difference} BPM · speed ×${tempoNumber(match.multiplier)} · pitch ${match.pitch}.`;
+        if (!isMidiConnected()) result.textContent += ' Connect TP-7 to apply.';
+        if (sent) result.dataset.status = 'sent';
+        button.disabled = tempoPending || !isMidiConnected();
+    } catch (error) {
+        result.textContent = error.message;
+        result.dataset.status = 'error';
+    }
 }
 
 function setTransport(value) {
@@ -557,6 +633,7 @@ async function initMIDI() {
             // Check if our connected device was disconnected
             if (midiOutput && e.port.id === midiOutput.id && e.port.state === 'disconnected') {
                 midiOutput = null;
+                if (connectionType === 'usb') connectionType = null;
                 updateStatus('disconnected', 'TP-7 disconnected');
                 log('TP-7 disconnected');
             }
@@ -628,6 +705,8 @@ function connect() {
 }
 
 function updateStatus(statusState, text) {
+    invalidateTempo();
+    window.tp7RemotePanel?.connectionChanged();
     const statusEl = document.getElementById('status');
     const statusText = document.getElementById('status-text');
     const connectBtn = document.getElementById('connect-btn');
@@ -663,7 +742,7 @@ async function connectBLE() {
                 { services: [BLE_MIDI_SERVICE] },
                 { namePrefix: 'TP-7' }
             ],
-            optionalServices: [BLE_MIDI_SERVICE]
+            optionalServices: [BLE_MIDI_SERVICE, TP7CompanionBLE.SERVICE]
         });
 
         bleDevice.addEventListener('gattserverdisconnected', onBLEDisconnected);
@@ -709,6 +788,8 @@ function onBLEDisconnected() {
 }
 
 function updateBLEStatus(statusState, text) {
+    invalidateTempo();
+    window.tp7RemotePanel?.connectionChanged();
     const statusEl = document.getElementById('ble-status');
     const statusText = document.getElementById('ble-status-text');
     statusEl.className = statusState;
@@ -724,6 +805,117 @@ document.addEventListener('DOMContentLoaded', () => {
     createChannelStrips();
     createGainControls();
     createCueButtons();
+
+    let tempoTrack = null, tempoSourceKind = 'none', cueReadPending = false;
+    const sourceInput = document.getElementById('tempo-source');
+    const sourceInfo = document.getElementById('tempo-source-info');
+    const cueReadButton = document.getElementById('tempo-read-cue');
+    function updateCueReadButton(remote = window.tp7RemotePanel?.getState()) {
+        cueReadButton.disabled = cueReadPending || !!remote?.busy;
+        cueReadButton.textContent = cueReadPending ? 'Reading cue…' : 'Read from cue';
+    }
+    const currentTrack = remote => remote.enabled && remote.file ? `${remote.connection}:${TP7DJCues.trackKey(remote.file)}` : null;
+    document.addEventListener('tp7-remote-state', event => {
+        updateCueReadButton(event.detail);
+        const next = currentTrack(event.detail);
+        if (next === tempoTrack) return;
+        tempoTrack = next; tempoFileRevision++; tempoSourceKind = 'none';
+        sourceInput.value = '';
+        sourceInfo.textContent = next ? `${event.detail.file.filename} · waiting for cue BPM, or enter manually.` : 'Enter BPM, or load it from the matching cue file.';
+        invalidateTempo();
+    });
+    window.tp7TempoSource = {
+        capture: () => tempoFileRevision,
+        fromCue(source, revision) {
+            const remote = window.tp7RemotePanel.getState();
+            if (revision !== tempoFileRevision || !tempoTrack || currentTrack(remote) !== tempoTrack ||
+                source.filename !== remote.file.filename || source.sampleRate !== remote.file.sampleRate || source.numFrames !== remote.file.numFrames ||
+                (tempoSourceKind === 'manual' && sourceInput.value.trim())) return;
+            tempoFileRevision++; tempoSourceKind = 'cue';
+            sourceInput.value = source.bpm === null ? '' : source.bpm.toLocaleString('en-US', { useGrouping: false, maximumSignificantDigits: 21 });
+            sourceInfo.textContent = source.bpm === null ? `${source.filename} · no BPM in cue file. Enter it manually.` : `${source.filename} · BPM from cue file`;
+            invalidateTempo();
+        },
+    };
+    for (const id of ['tempo-source', 'tempo-target']) {
+        document.getElementById(id).addEventListener('input', () => {
+            if (id === 'tempo-source') {
+                // A slow file read must not overwrite a newer manual edit.
+                tempoFileRevision++;
+                tempoSourceKind = 'manual';
+                sourceInfo.textContent = 'Manual BPM for the current track.';
+            }
+            invalidateTempo();
+        });
+    }
+
+    cueReadButton.addEventListener('click', async () => {
+        if (connectionType !== 'ble' || !isMidiConnected()) {
+            sourceInfo.textContent = 'Connect TP-7 via Bluetooth to read its matching cue file.';
+            return;
+        }
+        if (cueReadPending || window.tp7RemotePanel.getState().busy) return;
+        cueReadPending = true; updateCueReadButton();
+        // An explicit read replaces the previous value; subsequent manual edits
+        // still win through the existing revision check in fromCue().
+        tempoFileRevision++; tempoSourceKind = 'cue'; sourceInput.value = '';
+        sourceInfo.textContent = 'Reading BPM from the current track’s cue file…';
+        invalidateTempo();
+        try {
+            if (!await window.tp7RemotePanel.enableCueMode()) throw new Error(document.getElementById('remote-status').textContent);
+            const ok = await window.tp7CuePanel.read();
+            if (!ok && window.tp7RemotePanel.getState().enabled && tempoSourceKind !== 'manual') {
+                sourceInfo.textContent = document.getElementById('carrier-status').textContent;
+            }
+        } catch (error) {
+            if (window.tp7RemotePanel.getState().enabled && tempoSourceKind !== 'manual') sourceInfo.textContent = error.message;
+        } finally { cueReadPending = false; updateCueReadButton(); }
+    });
+
+    document.getElementById('tempo-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        if (tempoPending) return;
+        const revision = tempoRevision;
+        const inputs = tempoInputs();
+        let failure = null;
+        try {
+            const match = TP7Tempo.calculate(...inputs);
+            if (!isMidiConnected()) throw new Error('Connect TP-7 before applying tempo.');
+            tempoPending = true;
+            tempoLastSent = null;
+            updateTempoPreview();
+            // CC18=64 releases the rocker during native playback. Do not use
+            // setTransport(): its stop compensation would overwrite our pitch.
+            await transmitMidiBatch([
+                [0xB0, TP7.CC_TRANSPORT, TP7.SPEED_STOP],
+                TP7Tempo.pitchBytes(match.pitch),
+            ], () => revision === tempoRevision);
+            if (revision !== tempoRevision) return;
+            document.getElementById('pitch-bend').value = match.pitch;
+            document.getElementById('pitch-manual').value = match.pitch;
+            updatePitchDisplay(match.pitch);
+            document.querySelectorAll('.pitch-preset').forEach(button => {
+                button.classList.toggle('active', Number(button.dataset.pitch) === match.pitch);
+            });
+            document.getElementById('playmode-comp').checked = true;
+            updatePlaybackModeUI(true);
+            updateTransportState(TP7.SPEED_STOP);
+            document.getElementById('rocker-manual').value = TP7.SPEED_STOP;
+            tempoLastSent = JSON.stringify(inputs);
+            saveControlState();
+            log(`Tempo speed sent: pitch ${match.pitch}; predicted ${tempoNumber(match.achievedBpm)} BPM`);
+        } catch (error) {
+            if (revision === tempoRevision) failure = error.message;
+        } finally {
+            tempoPending = false;
+            updateTempoPreview();
+            if (failure) {
+                const result = document.getElementById('tempo-result');
+                result.textContent = `Tempo was not confirmed sent. ${failure}`;
+                result.dataset.status = 'error';
+            }
+        }
+    });
 
     // Send All mixer values
     document.getElementById('mixer-send-all').addEventListener('click', () => {
@@ -978,7 +1170,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('clear-state-btn').addEventListener('click', () => {
         if (confirm('Clear all saved state (layout, mixer, gain settings)?')) {
             localStorage.removeItem('tp7-control-state');
-            localStorage.removeItem('tp7-layout-order');
+            localStorage.removeItem('tp7-layout-order-v2');
+            localStorage.removeItem('tp7-layout-order-v3');
             location.reload();
         }
     });
@@ -1097,15 +1290,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveLayoutOrder() {
         const sections = document.querySelectorAll('#app > .section');
         const order = Array.from(sections).map(s => s.id);
-        localStorage.setItem('tp7-layout-order', JSON.stringify(order));
+        localStorage.setItem('tp7-layout-order-v3', JSON.stringify(order));
     }
 
     function loadLayoutOrder() {
-        const saved = localStorage.getItem('tp7-layout-order');
-        if (!saved) return;
+        const saved = localStorage.getItem('tp7-layout-order-v3');
+        const previous = saved ? null : localStorage.getItem('tp7-layout-order-v2');
+        if (!saved && !previous) return;
 
         try {
-            const order = JSON.parse(saved);
+            const order = JSON.parse(saved || previous);
+            if (!Array.isArray(order)) return;
             const app = document.getElementById('app');
 
             order.forEach(id => {
@@ -1114,6 +1309,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     app.appendChild(section);
                 }
             });
+            if (!saved) {
+                // Move only the mixer when upgrading an existing custom layout.
+                document.getElementById('section-carrier').after(document.getElementById('section-mixer'));
+                saveLayoutOrder();
+            }
         } catch (e) {
             console.error('Failed to load layout order:', e);
         }
@@ -1168,8 +1368,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Restore pitch bend
             if (controlState.pitchBend !== undefined) {
-                document.getElementById('pitch-bend').value = controlState.pitchBend;
-                updatePitchDisplay(controlState.pitchBend);
+                const pitch = Number(controlState.pitchBend);
+                if (Number.isInteger(pitch) && pitch >= MIDI.PITCH_MIN && pitch <= MIDI.PITCH_MAX) {
+                    document.getElementById('pitch-bend').value = pitch;
+                    document.getElementById('pitch-manual').value = pitch;
+                    updatePitchDisplay(pitch);
+                    document.querySelectorAll('.pitch-preset').forEach(button => {
+                        button.classList.toggle('active', Number(button.dataset.pitch) === pitch);
+                    });
+                }
             }
 
             // Restore transport
@@ -1194,8 +1401,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('playmode-comp').checked = controlState.playmodeComp;
                 if (controlState.playmodeComp) {
                     updatePlaybackModeUI(true);
-                    document.getElementById('pitch-bend').value = TP7.STOP_COMPENSATION_PITCH;
-                    updatePitchDisplay(TP7.STOP_COMPENSATION_PITCH);
                 }
             }
 
@@ -1276,7 +1481,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Keyboard bindings
     document.addEventListener('keydown', (e) => {
         // Ignore if typing in an input
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(e.target.tagName) || e.target.isContentEditable) return;
 
         // Close popup on Escape
         if (e.key === 'Escape') {
