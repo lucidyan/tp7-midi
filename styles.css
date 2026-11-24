@@ -18,6 +18,51 @@
     --font-mono: 'SF Mono', SFMono-Regular, ui-monospace, Menlo, Monaco, 'Cascadia Code', 'Consolas', monospace;
 }
 
+/* Generated DJ jumps: bounded pages remain usable on phones and long tracks. */
+.dj-track { overflow-wrap: anywhere; margin-bottom: 16px; font-family: var(--font-mono); font-size: .85rem; }
+.dj-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.dj-controls label { display: block; font-size: .75rem; margin-bottom: 7px; }
+.dj-controls input, .dj-controls select, #dj-page {
+    width: 100%; min-width: 0; min-height: 44px; padding: 8px;
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; font: inherit;
+}
+.dj-summary { margin: 14px 0 6px; font-size: .9rem; font-weight: 600; }
+.dj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 10px; margin-top: 14px; }
+.dj-grid .dj-cue {
+    min-width: 0; min-height: 92px; padding: 10px 6px; display: flex; flex-direction: column;
+    align-items: flex-start; gap: 6px; text-align: left; touch-action: manipulation;
+}
+.dj-cue strong { font-size: 1.25rem; color: var(--accent); }
+.dj-cue span { font-size: .72rem; }
+.dj-cue small { font-family: var(--font-mono); font-size: .75rem; }
+.dj-cue[aria-current="step"] { border-color: var(--accent); background: rgba(255, 107, 53, .12); }
+.carrier-options { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0; }
+.carrier-options label { display: flex; align-items: center; gap: 8px; font-size: .8rem; }
+.carrier-options input { width: auto; accent-color: var(--accent); }
+[hidden] { display: none !important; }
+.feature-toggle { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
+.feature-toggle input { width: auto; accent-color: var(--accent); }
+#section-tempo .tempo-panel { border: 0; padding: 0; margin: 0; background: none; }
+#section-carrier details { margin-top: 16px; }
+#carrier-format { max-width: 100%; }
+.carrier-live { padding: 12px; margin-top: 12px; border: 1px solid var(--border); border-radius: 6px; font: .85rem var(--font-mono); overflow-wrap: anywhere; }
+.carrier-live[data-playing="true"] { border-color: var(--success); color: #a5e2a8; }
+#carrier-cues .cue-state { min-height: 1em; font-size: .7rem; font-weight: 700; letter-spacing: .06em; }
+#carrier-cues .dj-cue[aria-current="step"] { border-color: var(--success); background: rgba(76, 175, 80, .2); box-shadow: inset 0 0 0 2px var(--success); }
+#carrier-cues .dj-cue[aria-current="step"] strong, #carrier-cues .dj-cue[aria-current="step"] .cue-state { color: #a5e2a8; }
+#carrier-cues .dj-cue.is-next { border-color: var(--info); }
+#carrier-cues .dj-cue.is-next .cue-state { color: #90caf9; }
+.dj-paging { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+.dj-paging[hidden] { display: none; }
+.dj-paging label { display: flex; align-items: center; gap: 6px; font-size: .8rem; }
+#dj-page { width: 70px; }
+@media (max-width: 440px) {
+    .dj-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dj-controls > :first-child { grid-column: 1 / -1; }
+    .dj-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 /* Standardized Info/Warning Boxes */
 .info-box, .warning-box {
     display: flex;
@@ -763,8 +808,109 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* Pitch Bend / Speed Modifier */
+.tempo-panel {
+    background: var(--bg);
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.tempo-panel h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+.tempo-inputs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+}
+
+.tempo-inputs label {
+    display: block;
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+}
+
+.tempo-inputs label small {
+    color: var(--text-dim);
+    font-weight: normal;
+    display: block;
+    min-height: 1em;
+}
+
+.tempo-inputs input {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--surface);
+    color: var(--text);
+    padding: 12px;
+    font: 1.25rem var(--font-mono);
+}
+
+.tempo-inputs > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.tempo-inputs input {
+    margin-top: auto;
+}
+
+.tempo-inputs input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+#tempo-apply {
+    width: 100%;
+    margin-top: 14px;
+}
+
+.tempo-result {
+    margin: 12px 0;
+    line-height: 1.6;
+    font: 0.8rem/1.6 var(--font-mono);
+    overflow-wrap: anywhere;
+}
+
+.tempo-result[data-status="error"] {
+    color: var(--warning);
+}
+
+.tempo-result[data-status="sent"] {
+    color: var(--success);
+}
+
+.tempo-file-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    overflow-wrap: anywhere;
+}
+
+.tempo-file-row button {
+    font-size: 0.75rem;
+    padding: 8px 10px;
+}
+
+.tempo-help {
+    margin-top: 10px;
+    color: #b0b0b0;
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
 .speed-display {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
     gap: 12px;
     margin-bottom: 15px;
@@ -814,6 +960,45 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* Cue Section */
+.remote-help {
+    color: #b0b0b0;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+.remote-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.remote-actions button {
+    flex: 1 1 130px;
+}
+
+.remote-live {
+    padding: 12px;
+    margin-bottom: 12px;
+    background: var(--bg);
+    border-radius: 5px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.remote-status {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    overflow-wrap: anywhere;
+}
+
+.remote-status[data-status="error"] {
+    color: var(--warning);
+}
+
 .cue-controls {
     display: flex;
     justify-content: space-between;

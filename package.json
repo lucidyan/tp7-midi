@@ -1,0 +1,15 @@
+{
+  "name": "tp7-midi",
+  "private": true,
+  "description": "Browser MIDI controller for the Teenage Engineering TP-7",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test tests/tempo.test.js tests/remote-protocol.test.js tests/dj-cues.test.js tests/wav-cues.test.js tests/companion-ble.test.js tests/cue-carrier.test.js",
+    "test:browser": "node --test tests/browser.test.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.65.0"
+  }
+}

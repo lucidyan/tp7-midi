@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TP-7 MIDI</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=20261124-3">
 </head>
 <body>
     <div class="container">
@@ -56,7 +56,7 @@
             <!-- Global State Warning -->
             <div id="dismiss-global-state" class="info-box dismissible">
                 <span class="icon">ℹ️</span>
-                <span>All states are LOCAL only. TP-7 doesn't report state via MIDI - UI may not match device after reconnection or physical interaction.</span>
+                <span>Standard MIDI control states are LOCAL only and may not match TP-7 after reconnection or physical interaction. Cue mode follows the track and playback position reported by TP-7.</span>
                 <button class="dismiss-btn" title="Dismiss">✕</button>
             </div>
 
@@ -96,7 +96,141 @@
                 </div>
             </div>
 
-            <!-- Cue Markers -->
+            <div id="section-tempo" class="section">
+                <h2>Tempo matching</h2>
+                <form id="tempo-form" class="tempo-panel" novalidate>
+                    <div class="tempo-inputs">
+                        <div>
+                            <label for="tempo-source">Track BPM <small>at original speed</small></label>
+                            <input id="tempo-source" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 120" aria-describedby="tempo-source-info" required>
+                        </div>
+                        <div>
+                            <label for="tempo-target">Target BPM</label>
+                            <input id="tempo-target" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 128" required>
+                        </div>
+                    </div>
+                    <button id="tempo-apply" class="primary" type="submit" disabled>Apply</button>
+                    <p id="tempo-result" class="tempo-result" role="status" aria-live="polite">Enter the track BPM and target BPM.</p>
+                    <div class="tempo-file-row">
+                        <button id="tempo-read-cue" type="button">Read from cue</button>
+                        <span id="tempo-source-info">Enter BPM, or load it from the matching cue file.</span>
+                    </div>
+                    <p class="tempo-help">Read BPM from the current track's matching .cue on TP-7 via Bluetooth, or enter it manually. Reading stops playback.</p>
+                    <p class="tempo-help"><strong>Before Apply:</strong> start playback on TP-7 and set its on-device SPD to 1×, with external clock sync off. Apply resets the rocker and sends the closest MIDI speed immediately. The TP-7 screen's SPD stays unchanged.</p>
+                    <p class="tempo-help">The preview uses this project's experimental speed mapping. MIDI has finite precision; the displayed BPM is a prediction, not a measurement from TP-7.</p>
+                </form>
+            </div>
+
+            <div id="section-carrier" class="section">
+                <h2>Track cues <small>Bluetooth</small></h2>
+                <label class="feature-toggle"><input id="cue-mode" type="checkbox"> Enable cue mode</label>
+                <p class="remote-help">Read the matching .cue export from TP-7 and follow its markers during playback.</p>
+                <div id="cue-mode-content" hidden>
+                    <div class="remote-actions">
+                        <button id="remote-session" class="primary" disabled>Start listening</button>
+                        <button id="remote-play" disabled>Play</button>
+                        <button id="remote-stop" disabled>Stop</button>
+                    </div>
+                    <p id="remote-status" class="remote-status" role="status" aria-live="polite">Connect TP-7 first.</p>
+                    <div class="remote-live">
+                        <p id="remote-file">Waiting for the current track…</p>
+                        <p id="remote-file-info"></p>
+                        <p><span id="remote-playback">Unknown</span> · <span id="remote-position">—</span></p>
+                    </div>
+                    <p class="remote-help">Auto-load checks the matching file when stopped. If it is waiting, press Stop. Play resumes from the current position; tapping a cue jumps and plays.</p>
+                    <div class="remote-actions">
+                        <button id="carrier-read" disabled>Reload cues</button>
+                        <button id="carrier-cancel" disabled>Cancel</button>
+                    </div>
+                    <p id="carrier-status" class="remote-status" role="status" aria-live="polite"></p>
+                    <p id="carrier-source" class="remote-help"></p>
+                    <p id="carrier-live" class="carrier-live" role="status" aria-live="polite">Load cues to follow playback.</p>
+                    <div id="carrier-cues" class="dj-grid" role="group" aria-label="Track cue points"></div>
+                    <div id="carrier-paging" class="dj-paging" hidden>
+                        <button id="carrier-prev">← Previous</button><span id="carrier-page"></span><button id="carrier-next">Next →</button>
+                    </div>
+                    <div class="carrier-options">
+                        <label><input id="carrier-follow" type="checkbox" checked> Follow current cue page</label>
+                        <label><input id="dj-enabled" type="checkbox"> Show generated beat / bar grid</label>
+                    </div>
+                    <details id="carrier-options">
+                        <summary>Cue file options</summary>
+                        <p class="remote-help">Export any filename with its matching .cue in WAV Editor 1.3.1+ and copy both to the same TP-7 folder. Re-export after renaming the WAV.</p>
+                        <p id="carrier-track" class="dj-track"></p>
+                        <p id="carrier-target" class="dj-track remote-help"></p>
+                        <label for="carrier-format">Companion file</label>
+                        <select id="carrier-format">
+                            <option value="cue">Same track name + .cue</option>
+                            <option value="legacy-wav">Same track name + .tp7-cues.wav</option>
+                        </select>
+                        <label class="feature-toggle"><input id="carrier-auto" type="checkbox" checked> Auto-load when stopped</label>
+                    </details>
+                    <details id="carrier-prepare-options">
+                        <summary>Prepare a cue file from WAV</summary>
+                        <p class="remote-help">Choose a local WAV to copy its markers and stored BPM into a matching .cue. Save it next to the original on TP-7. Your audio stays on this device.</p>
+                        <div class="remote-actions">
+                            <input id="carrier-file" type="file" accept=".wav,audio/wav" hidden>
+                            <button id="carrier-prepare">Choose WAV</button>
+                            <button id="carrier-download" disabled>Save cue file</button>
+                        </div>
+                        <p id="carrier-preparation" class="dj-track remote-help"></p>
+                    </details>
+                </div>
+            </div>
+
+            <!-- Mixer -->
+            <div id="section-mixer" class="section">
+                <h2>Track Mixer <small>CC 7 / CC 120</small></h2>
+                <div class="remote-actions">
+                    <button id="mixer-send-all" class="small-btn" title="Send all fader values to TP-7">📤 Send All</button>
+                    <button id="mixer-reset" class="small-btn" title="Reset all faders to 100% and unmute">🔄 Reset</button>
+                </div>
+                <div id="dismiss-mixer-info" class="info-box dismissible">
+                    <span class="icon">ℹ️</span>
+                    <span><strong>6 stereo tracks</strong> controllable via MIDI. USB only outputs tracks 1-3, but TP-7 can mix all 6 internally.</span>
+                    <button class="dismiss-btn" title="Dismiss">✕</button>
+                </div>
+                <div id="dismiss-mixer-warning" class="warning-box dismissible">
+                    <span class="icon">⚠️</span>
+                    <span><strong>Resets on track change!</strong> Mixer levels and mutes reset when track is changed via cue or loop.</span>
+                    <button class="dismiss-btn" title="Dismiss">✕</button>
+                </div>
+                <div class="channel-strips" id="channel-strips">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+
+            <div id="section-dj" class="section" hidden>
+                <h2>DJ Jump Grid <small>Beat / bar jumps</small></h2>
+                <p id="dj-track" class="dj-track">Waiting for the current track…</p>
+                <div class="dj-controls">
+                    <div>
+                        <label for="dj-bpm">Original track BPM</label>
+                        <input id="dj-bpm" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 88" maxlength="32" aria-describedby="dj-bpm-source" disabled>
+                    </div>
+                    <div>
+                        <label for="dj-interval">Jump every</label>
+                        <select id="dj-interval" disabled></select>
+                    </div>
+                    <div>
+                        <label for="dj-meter">Beats per bar</label>
+                        <select id="dj-meter" disabled></select>
+                    </div>
+                </div>
+                <p id="dj-bpm-source" class="remote-help"></p>
+                <p class="remote-help">Beat 1 starts at 0:00. Use the BPM of the original file, even when playback speed is changed. Beats are quarter notes (4 beats per bar for 4/4). The grid assumes a constant tempo; it does not detect drums.</p>
+                <p id="dj-summary" class="dj-summary" role="status"></p>
+                <p id="dj-connection" class="remote-help"></p>
+                <div id="dj-grid" class="dj-grid" role="group" aria-label="Generated track jumps"></div>
+                <div id="dj-paging" class="dj-paging" hidden>
+                    <button id="dj-prev" type="button">← Previous</button>
+                    <label for="dj-page">Page <input id="dj-page" type="number" min="1" step="1" value="1" inputmode="numeric"> <span id="dj-page-total"></span></label>
+                    <button id="dj-next" type="button">Next →</button>
+                </div>
+                <p id="dj-action-status" class="remote-status" role="status" aria-live="polite"></p>
+                <p class="remote-help">Generated time jumps, saved only in this browser; existing TP-7 cues stay intact. A tap stops playback, seeks and resumes. Positions are rounded once to the nearest millisecond. Bluetooth and device response add latency: jumps are not quantized to a live beat or synchronized with another deck.</p>
+            </div>
+
             <div id="section-cue" class="section">
                 <h2>Cue Markers <small>Note On/Off</small></h2>
                 <div id="dismiss-cue-required" class="warning-box dismissible">
@@ -150,6 +284,7 @@
             <!-- Playback Speed (Pitch Bend) -->
             <div id="section-pitch" class="section">
                 <h2>Playback Speed <small>Pitch Bend</small></h2>
+
                 <div id="dismiss-pitch-info" class="info-box dismissible">
                     <span class="icon">ℹ️</span>
                     <span><strong>1 of 3 speed controls.</strong> Internal multiplier via MIDI. Only during playback. NOT visible on TP-7. (Other 2: SPD on screen - no MIDI access!, Rocker below)</span>
@@ -186,24 +321,6 @@
                             <button id="pitch-manual-apply">Set</button>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Mixer -->
-            <div id="section-mixer" class="section">
-                <h2>Track Mixer <small>CC 7 / CC 120</small> <button id="mixer-send-all" class="small-btn" title="Send all fader values to TP-7">📤 Send All</button> <button id="mixer-reset" class="small-btn" title="Reset all faders to 100% and unmute">🔄 Reset</button></h2>
-                <div id="dismiss-mixer-info" class="info-box dismissible">
-                    <span class="icon">ℹ️</span>
-                    <span><strong>6 stereo tracks</strong> controllable via MIDI. USB only outputs tracks 1-3, but TP-7 can mix all 6 internally.</span>
-                    <button class="dismiss-btn" title="Dismiss">✕</button>
-                </div>
-                <div id="dismiss-mixer-warning" class="warning-box dismissible">
-                    <span class="icon">⚠️</span>
-                    <span><strong>Resets on track change!</strong> Mixer levels and mutes reset when track is changed via cue or loop.</span>
-                    <button class="dismiss-btn" title="Dismiss">✕</button>
-                </div>
-                <div class="channel-strips" id="channel-strips">
-                    <!-- Generated by JS -->
                 </div>
             </div>
 
@@ -303,6 +420,15 @@
         </footer>
     </div>
 
-    <script src="app.js"></script>
+    <script src="tempo.js"></script>
+    <script src="remote-protocol.js?v=20261124-6"></script>
+    <script src="companion-ble.js?v=20261124-3"></script>
+    <script src="cue-carrier.js?v=20261124-2"></script>
+    <script src="dj-cues.js?v=20261123-1"></script>
+    <script src="wav-cues.js?v=20261124-6"></script>
+    <script src="app.js?v=20261124-6"></script>
+    <script src="remote-panel.js?v=20261124-4"></script>
+    <script src="carrier-panel.js?v=20261124-4"></script>
+    <script src="dj-panel.js?v=20261124-3"></script>
 </body>
 </html>
